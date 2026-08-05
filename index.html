@@ -384,15 +384,17 @@ function charHead(nx,ny,p){
   const rot = p.t+90+p.hd;
   const face = p.flat ? 0 : (p.fs1>=0 ? -1 : 1);
   const [hx,hy] = pt(nx,ny,p.t+p.hd,16);
-  const pf = face===0 ? 1 : -face; // ponytail sits behind the face
+  const pf = face===0 ? 0 : -face; // ponytail sits behind the face; hidden in front view
   let s = '<g transform="translate('+hx.toFixed(1)+' '+hy.toFixed(1)+') rotate('+(rot).toFixed(1)+')">';
-  s += '<path d="M'+(pf*8)+',-8 q'+(pf*11)+',3 '+(pf*12)+',16" stroke="'+CH.line
-    +'" stroke-width="9.4" fill="none" stroke-linecap="round"/>';
-  s += '<path d="M'+(pf*8)+',-8 q'+(pf*11)+',3 '+(pf*12)+',16" stroke="'+CH.hair
-    +'" stroke-width="7" fill="none" stroke-linecap="round"/>';
+  if(pf){
+    s += '<path d="M'+(pf*8)+',-8 q'+(pf*11)+',3 '+(pf*12)+',16" stroke="'+CH.line
+      +'" stroke-width="9.4" fill="none" stroke-linecap="round"/>';
+    s += '<path d="M'+(pf*8)+',-8 q'+(pf*11)+',3 '+(pf*12)+',16" stroke="'+CH.hair
+      +'" stroke-width="7" fill="none" stroke-linecap="round"/>';
+  }
   s += '<circle cx="0" cy="-2.5" r="12.3" fill="'+CH.hair+'" stroke="'+CH.line+'" stroke-width="2.2"/>';
   s += '<circle cx="'+(face*2.6)+'" cy="2.6" r="10.4" fill="'+CH.skin+'"/>';
-  s += '<circle cx="'+(pf*7.5)+'" cy="-9.5" r="3" fill="'+CH.gold+'"/>';
+  s += '<circle cx="'+(pf?pf*7.5:0)+'" cy="'+(pf?-9.5:-12.5)+'" r="3" fill="'+CH.gold+'"/>';
   if(face===0){
     s += eyeSVG(-4.4,1.5)+eyeSVG(4.4,1.5)
       +'<path d="M-2.8,7.2 q2.8,2.8 5.6,0" stroke="#7C4A32" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
@@ -406,13 +408,15 @@ function poseSVG(p){
   const [nx,ny] = pt(p.px,p.py,p.t,SK.torso);
   const u = [Math.cos(p.t*DD), Math.sin(p.t*DD)], v = [-u[1], u[0]];
   const wx = p.px+u[0]*7, wy = p.py+u[1]*7;
+  const so = p.flat ? 7.5 : 2; // arms attach at the shoulders, not the sternum
+  const s1x = nx+v[0]*so, s1y = ny+v[1]*so, s2x = nx-v[0]*so, s2y = ny-v[1]*so;
   let s = '<ellipse cx="'+p.px.toFixed(1)+'" cy="139" rx="26" ry="4" fill="#E3D8EC"/>';
-  s += charLeg(p.px,p.py,p.l2,p.k2,p.fs2,1,p.f2) + charArm(nx,ny,p.a2,p.b2,1);
+  s += charLeg(p.px,p.py,p.l2,p.k2,p.fs2,1,p.f2) + charArm(s2x,s2y,p.a2,p.b2,1);
   s += cap(wx,wy,nx,ny,13,CH.top);
   s += cap(wx-u[0]*2+v[0]*6,wy-u[1]*2+v[1]*6, wx-u[0]*2-v[0]*6,wy-u[1]*2-v[1]*6, 2.5, CH.gold);
   s += charLeg(p.px,p.py,p.l1,p.k1,p.fs1,0,p.f1);
   s += charSkirt(p);
-  s += charArm(nx,ny,p.a1,p.b1,0);
+  s += charArm(s1x,s1y,p.a1,p.b1,0);
   s += charHead(nx,ny,p);
   return s;
 }
@@ -442,7 +446,7 @@ const stL  = (px,o)=>Object.assign({px,py:92,t:-90,a1:105,a2:75,l1:87,k1:2,l2:96
 const stLup= (px,o)=>stL(px, Object.assign({a1:-60,a2:-120}, o));
 const stR  = (px,o)=>Object.assign({px,py:92,t:-90,a1:75,a2:105,l1:93,k1:-2,l2:84,k2:2,fs1:-1,fs2:-1}, o);
 const stRup= (px,o)=>stR(px, Object.assign({a1:-120,a2:-60}, o));
-const stF  = (px,o)=>Object.assign({px,py:92,t:-90,a1:65,a2:115,l1:80,l2:100,fs1:-1,fs2:1,flat:1}, o);
+const stF  = (px,o)=>Object.assign({px,py:92,t:-90,a1:62,a2:118,l1:77,l2:103,fs1:-1,fs2:1,flat:1}, o);
 const stFup= (px,o)=>stF(px, Object.assign({a1:-55,a2:-125}, o));
 /* Shared complex poses */
 const P_BRUECKE = {px:108,py:88,t:38,bow:-24,hd:15,a1:62,a2:74,l1:122,k1:8,l2:116,k2:10};
@@ -454,7 +458,12 @@ const P_TUCKBALL_R = {px:118,py:110,t:172,bow:20,hd:-45,a1:95,b1:-70,a2:105,b2:-
 const DEMOS = {
   /* ---- Aufwärmen ---- */
   hampelmann:{title:"Hampelmänner", tips:["Beine auf – Arme hoch, Beine zu – Arme runter","Schön federnd auf den Zehenspitzen hüpfen"],
-    dur:900, hold:0, kf:KFS([ stF(110), stF(110,{py:87,a1:-40,a2:-140,l1:62,l2:118}), stF(110) ])},
+    dur:1000, hold:100, times:[0,.25,.5,.75,1], kf:KFS([
+      stF(110,{a1:78,a2:102}),
+      stF(110,{py:86,a1:0,a2:180,l1:68,l2:112}),
+      stF(110,{py:92,a1:-76,a2:256,l1:56,l2:124}),
+      stF(110,{py:86,a1:0,a2:180,l1:68,l2:112}),
+      stF(110,{a1:78,a2:102}) ])},
   armkreisen:{title:"Armkreisen groß", tips:["Arme ganz lang machen","Große Kreise – erst vorwärts, dann rückwärts"],
     dur:1500, hold:0,
     decor:'<circle class="ac" cx="105" cy="46" r="31" stroke-dasharray="6 8"/><path class="act" d="M136,40 l2,11 -10,-4 z"/>',
