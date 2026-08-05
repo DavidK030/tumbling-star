@@ -176,7 +176,9 @@ const DAYS = [
       {track:"bogengang"}]},
     {title:"Abschluss", items:[
       {name:"5x Rad – Landung stehen!", note:"Beine strecken"},
-      {name:"3x Lieblingssprung", note:"Toe Touch / Tuck"}]}
+      {name:"3x Lieblingssprung", note:"Toe Touch / Tuck"},
+      {name:"Sitz-Sprung-Haltung", note:"3x 3 Sek halten", minTL:2},
+      {name:"Brücken-Kick-over", note:"3 Versuche, mit Spotter!", minTL:4}]}
   ]},
   {id:"B", name:"Kraft-Tag", emoji:"💪", color:C.teal, tint:"#DFF4F4", sections:[
     {title:"Aufwärmen", items:[
@@ -192,7 +194,10 @@ const DAYS = [
       {name:"Handgelenk-Dehnung", sec:30}]},
     {title:"Abschluss", items:[
       {name:"Handstand-Versuche mit Spotter", note:"5 Versuche"},
-      {name:"3x Radschlag sauber"}]}
+      {name:"3x Radschlag sauber"},
+      {name:"Tuck-Sprünge", note:"2x 5", minTL:2},
+      {name:"Candlestick-to-Stand", note:"5x", minTL:3},
+      {name:"Einbeiniger Absprung", note:"10x pro Seite", minTL:4}]}
   ]},
   {id:"C", name:"Technik-Tag", emoji:"🤸", color:C.purple, tint:"#EEE6FB", sections:[
     {title:"Aufwärmen", items:[
@@ -204,7 +209,10 @@ const DAYS = [
       {name:"5x Rad – Landung stehen!", note:"Beine strecken"},
       {name:"5x Radschlag sauber"},
       {name:"3x Radwende", note:"Füße zusammen landen"},
-      {name:"Radwende + Strecksprung", note:"3x"}]},
+      {name:"Radwende + Strecksprung", note:"3x"},
+      {name:"Spreizsprung (Star)", note:"3x", minTL:2},
+      {name:"Pike-Sprung", note:"3x", minTL:3},
+      {name:"Hurdler", note:"je Seite 3x", minTL:5}]},
     {title:"Bogengang-Drills", items:[
       {track:"bogengang"},
       {name:"Ein Bein in der Brücke heben", note:"je Bein 5x"}]},
@@ -282,17 +290,21 @@ const CAT_INFO = {
   verein:{label:"Nur Verein", color:"var(--orange)"}
 };
 
-const TOTAL = 12;
 const KEY = "tumbling-star";
 
 /* ============ State ============ */
-let store = {stars:[], milestones:[], progress:{}, levels:{}};
+let store = {stars:[], milestones:[], progress:{}, levels:{}, tl:1, unit:{A:0,B:0,C:0}};
 try {
   const raw = localStorage.getItem(KEY);
   if (raw) store = Object.assign(store, JSON.parse(raw));
 } catch(e) {}
 TRACK_KEYS.forEach(k => { if(!store.progress[k]) store.progress[k] = {lvl:0, cnt:0}; });
 if(!store.levels) store.levels = {};
+if(!store.tl){
+  store.tl = 1;
+  store.unit = {A:0, B:0, C:0};
+  (store.stars||[]).forEach(s => { if(store.unit[s.d]!=null && store.unit[s.d]<3) store.unit[s.d]++; });
+}
 
 let tab = "training", dayId = null, checked = {}, confirmReset = false;
 let timer = null, timerInt = null, celebrate = null, demoShown = null;
@@ -324,19 +336,76 @@ function legSVG(px,py,l,k,fs,cls){
   const [tx,ty] = pt(fx,fy,l+k+90*fs,10);
   return seg(px,py,kx,ky,cls)+seg(kx,ky,fx,fy,cls)+seg(fx,fy,tx,ty,cls);
 }
+/* Cheer character renderer: 2D vector puppet in the team look (black/gold CHEER
+   outfit, brown ponytail), driven by the same joint-angle poses. */
+const CH = {skin:"#F0BE9B", skinSh:"#D8A57F", top:"#26222E", topSh:"#1B1824",
+  gold:"#D9B454", hair:"#4A2E1C", shoe:"#FFFFFF", shoeSh:"#DCD5E6"};
+function cap(x1,y1,x2,y2,w,color){
+  return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)
+    +'" y2="'+y2.toFixed(1)+'" stroke="'+color+'" stroke-width="'+w+'" stroke-linecap="round"/>';
+}
+function charLeg(px,py,l,k,fs,shade){
+  const [kx,ky] = pt(px,py,l,SK.upleg);
+  const [ax,ay] = pt(kx,ky,l+k,SK.loleg);
+  const [sx,sy] = pt(kx,ky,l+k,SK.loleg*0.7);
+  const [tx,ty] = pt(ax,ay,l+k+90*fs,11);
+  const skin = shade?CH.skinSh:CH.skin, shoe = shade?CH.shoeSh:CH.shoe;
+  return cap(px,py,kx,ky,7.5,skin)+cap(kx,ky,ax,ay,6.5,skin)
+    +cap(sx,sy,ax,ay,6.8,shoe)+cap(ax,ay,tx,ty,8,shoe);
+}
+function charArm(nx,ny,a,b,shade){
+  const [ex,ey] = pt(nx,ny,a,SK.uparm);
+  const [wx,wy] = pt(ex,ey,a+b,SK.forearm);
+  const top = shade?CH.topSh:CH.top, skin = shade?CH.skinSh:CH.skin;
+  return cap(nx,ny,ex,ey,7,top)+cap(ex,ey,wx,wy,5.5,skin)
+    +'<circle cx="'+wx.toFixed(1)+'" cy="'+wy.toFixed(1)+'" r="3.6" fill="'+skin+'"/>';
+}
+function charSkirt(p){
+  const u = [Math.cos(p.t*DD), Math.sin(p.t*DD)], v = [-u[1], u[0]];
+  const A = [p.px+v[0]*8, p.py+v[1]*8], B = [p.px-v[0]*8, p.py-v[1]*8];
+  const H = [p.px-u[0]*13, p.py-u[1]*13];
+  const C = [H[0]-v[0]*15, H[1]-v[1]*15], E = [H[0]+v[0]*15, H[1]+v[1]*15];
+  const pts = [A,B,C,E].map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");
+  return '<polygon points="'+pts+'" fill="'+CH.top+'"/>'
+    + cap(C[0],C[1],E[0],E[1],3,CH.gold);
+}
+function eyeSVG(x,y){
+  return '<circle cx="'+x+'" cy="'+y+'" r="3.1" fill="#fff"/>'
+    +'<circle cx="'+x+'" cy="'+(y+0.4)+'" r="2" fill="#5A3521"/>'
+    +'<circle cx="'+(x+0.7)+'" cy="'+(y-0.4)+'" r="0.7" fill="#fff"/>';
+}
+function charHead(nx,ny,p){
+  const rot = p.t+90+p.hd;
+  const face = p.flat ? 0 : (p.fs1>=0 ? -1 : 1);
+  const [hx,hy] = pt(nx,ny,p.t+p.hd,16);
+  const pf = face===0 ? 1 : -face; // ponytail sits behind the face
+  let s = '<g transform="translate('+hx.toFixed(1)+' '+hy.toFixed(1)+') rotate('+(rot).toFixed(1)+')">';
+  s += '<path d="M'+(pf*8)+',-8 q'+(pf*11)+',3 '+(pf*12)+',16" stroke="'+CH.hair
+    +'" stroke-width="7" fill="none" stroke-linecap="round"/>';
+  s += '<circle cx="0" cy="-2.5" r="12.3" fill="'+CH.hair+'"/>';
+  s += '<circle cx="'+(face*2.6)+'" cy="2.6" r="10.4" fill="'+CH.skin+'"/>';
+  s += '<circle cx="'+(pf*7.5)+'" cy="-9.5" r="3" fill="'+CH.gold+'"/>';
+  if(face===0){
+    s += eyeSVG(-4.4,1.5)+eyeSVG(4.4,1.5)
+      +'<path d="M-2.8,7.2 q2.8,2.8 5.6,0" stroke="#7C4A32" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+  } else {
+    s += eyeSVG(face*5.2,1.5)
+      +'<path d="M'+(face*7-2.4)+',7 q2.4,2.6 4.8,0.6" stroke="#7C4A32" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+  }
+  return s+'</g>';
+}
 function poseSVG(p){
-  const far = p.flat ? 'st' : 'stf';
   const [nx,ny] = pt(p.px,p.py,p.t,SK.torso);
-  const pa = (p.t+90)*DD;
-  const cx = (p.px+nx)/2 + p.bow*Math.cos(pa), cy = (p.py+ny)/2 + p.bow*Math.sin(pa);
-  const [hx,hy] = pt(nx,ny,p.t+p.hd,15);
-  return legSVG(p.px,p.py,p.l2,p.k2,p.fs2,far)
-    + armSVG(nx,ny,p.a2,p.b2,far)
-    + '<path class="st" d="M'+p.px.toFixed(1)+','+p.py.toFixed(1)
-      +' Q'+cx.toFixed(1)+','+cy.toFixed(1)+' '+nx.toFixed(1)+','+ny.toFixed(1)+'"/>'
-    + legSVG(p.px,p.py,p.l1,p.k1,p.fs1,'st')
-    + armSVG(nx,ny,p.a1,p.b1,'st')
-    + '<circle class="hd" r="9" cx="'+hx.toFixed(1)+'" cy="'+hy.toFixed(1)+'"/>';
+  const u = [Math.cos(p.t*DD), Math.sin(p.t*DD)], v = [-u[1], u[0]];
+  const wx = p.px+u[0]*7, wy = p.py+u[1]*7;
+  let s = charLeg(p.px,p.py,p.l2,p.k2,p.fs2,1) + charArm(nx,ny,p.a2,p.b2,1);
+  s += cap(wx,wy,nx,ny,13,CH.top);
+  s += cap(wx-u[0]*2+v[0]*6,wy-u[1]*2+v[1]*6, wx-u[0]*2-v[0]*6,wy-u[1]*2-v[1]*6, 2.5, CH.gold);
+  s += charLeg(p.px,p.py,p.l1,p.k1,p.fs1,0);
+  s += charSkirt(p);
+  s += charArm(nx,ny,p.a1,p.b1,0);
+  s += charHead(nx,ny,p);
+  return s;
 }
 function KFS(list){
   return list.map(p=>Object.assign({bow:0,hd:0,b1:0,b2:0,k1:0,k2:0,fs1:1,fs2:1,flat:0}, p));
@@ -349,7 +418,8 @@ function poseTween(d, u){
   const times = d.times || kf.map((_,i)=>i/(kf.length-1));
   let i=0; while(i<kf.length-2 && u>times[i+1]) i++;
   const t0=times[i], t1=times[i+1];
-  const w = easeIO(Math.min(1,Math.max(0,(u-t0)/(t1-t0))));
+  const wr = Math.min(1,Math.max(0,(u-t0)/(t1-t0)));
+  const w = d.lin ? wr : easeIO(wr); // mocap data plays linearly, hand-made poses eased
   const A=kf[i], B=kf[i+1], p={};
   for(const key of PKEYS) p[key] = A[key]+(B[key]-A[key])*w;
   return p;
@@ -634,6 +704,16 @@ const DEMOS = {
 DEMOS.handstandfrei = {title:"Handstand mit Spotter", tips:["Schwungbein hoch, der Spotter hält die Beine","Arme bleiben ganz lang","Körper anspannen wie ein Brett"],
   kf:KFS([ {px:110,py:58,t:93,a1:84,a2:94,l1:-84,k1:-4,l2:-92,k2:4,hd:-6,fs1:-1,fs2:-1} ])};
 
+
+/* Motion-captured keyframes (extracted from reference video footage);
+   they override the hand-made poses of the same demo key */
+const MOCAP = {
+  rad: {"dur": 3266, "hold": 700, "lin": 1, "times": [0.0, 0.0408, 0.0714, 0.1122, 0.1531, 0.1837, 0.2245, 0.2551, 0.2959, 0.3367, 0.3673, 0.4082, 0.449, 0.4796, 0.5204, 0.551, 0.5918, 0.6327, 0.6633, 0.7041, 0.7449, 0.7755, 0.8163, 0.8469, 0.8878, 0.9286, 0.9592, 1.0], "kf": [{"px": 40.0, "py": 77.5, "t": -94.6, "a1": -63.9, "b1": -16.0, "a2": -95.6, "b2": 11.7, "l1": 99.4, "k1": -3.9, "l2": 53.3, "k2": -2.3, "fs1": 1, "fs2": -1}, {"px": 40.2, "py": 78.1, "t": -92.3, "a1": -61.7, "b1": -16.6, "a2": -90.2, "b2": 11.3, "l1": 99.9, "k1": -4.6, "l2": 50.8, "k2": -0.4, "fs1": 1, "fs2": -1}, {"px": 40.9, "py": 78.2, "t": -89.2, "a1": -59.1, "b1": -17.2, "a2": -84.5, "b2": 11.4, "l1": 101.0, "k1": -5.1, "l2": 51.6, "k2": -0.9, "fs1": 1, "fs2": -1}, {"px": 42.7, "py": 78.2, "t": -84.9, "a1": -55.3, "b1": -15.4, "a2": -74.8, "b2": 7.2, "l1": 103.6, "k1": -5.4, "l2": 57.9, "k2": -2.8, "fs1": 1, "fs2": -1}, {"px": 44.7, "py": 78.6, "t": -78.3, "a1": -49.1, "b1": -14.3, "a2": -65.9, "b2": 9.8, "l1": 109.3, "k1": -6.9, "l2": 57.0, "k2": -3.6, "fs1": 1, "fs2": -1}, {"px": 47.2, "py": 80.1, "t": -72.9, "a1": -42.3, "b1": -10.4, "a2": -56.5, "b2": 13.5, "l1": 114.0, "k1": -7.5, "l2": 54.2, "k2": -4.4, "fs1": 1, "fs2": -1}, {"px": 51.9, "py": 82.7, "t": -63.5, "a1": -29.8, "b1": -2.7, "a2": -33.2, "b2": 2.0, "l1": 115.9, "k1": -1.3, "l2": 55.0, "k2": -1.1, "fs1": 1, "fs2": -1}, {"px": 56.9, "py": 83.8, "t": -49.9, "a1": -28.9, "b1": 1.5, "a2": -4.4, "b2": -0.5, "l1": 120.5, "k1": 3.2, "l2": 50.7, "k2": 19.4, "fs1": 1, "fs2": -1}, {"px": 67.1, "py": 83.3, "t": -25.6, "a1": -18.1, "b1": 3.6, "a2": 41.9, "b2": -3.2, "l1": 130.4, "k1": 2.1, "l2": 48.4, "k2": 52.2, "fs1": 1, "fs2": -1}, {"px": 78.6, "py": 82.0, "t": 2.5, "a1": -5.5, "b1": 26.1, "a2": 74.3, "b2": -14.8, "l1": 155.3, "k1": 68.3, "l2": 65.2, "k2": 55.5, "fs1": 1, "fs2": -1}, {"px": 88.0, "py": 76.3, "t": 25.1, "a1": 10.2, "b1": 38.6, "a2": 90.3, "b2": -25.5, "l1": 197.0, "k1": 65.5, "l2": 88.4, "k2": 33.2, "fs1": 1, "fs2": -1}, {"px": 102.3, "py": 64.4, "t": 56.6, "a1": 31.1, "b1": 45.4, "a2": 102.3, "b2": -30.5, "l1": 257.3, "k1": -4.9, "l2": 128.3, "k2": -1.8, "fs1": 1, "fs2": -1}, {"px": 115.7, "py": 60.1, "t": 76.9, "a1": 47.5, "b1": 36.8, "a2": 111.0, "b2": -36.8, "l1": 306.0, "k1": 0.2, "l2": 181.2, "k2": 68.5, "fs1": 1, "fs2": -1}, {"px": 125.0, "py": 59.6, "t": 88.5, "a1": 56.6, "b1": 34.4, "a2": 119.0, "b2": -44.7, "l1": 340.7, "k1": 2.8, "l2": 222.6, "k2": -4.8, "fs1": 1, "fs2": -1}, {"px": 137.3, "py": 59.2, "t": 103.9, "a1": 65.9, "b1": 32.6, "a2": 123.0, "b2": -39.6, "l1": 397.3, "k1": -1.1, "l2": 274.3, "k2": -2.5, "fs1": 1, "fs2": -1}, {"px": 147.5, "py": 61.6, "t": 120.1, "a1": 69.9, "b1": 29.0, "a2": 128.9, "b2": -38.6, "l1": 427.6, "k1": -3.7, "l2": 317.4, "k2": 2.1, "fs1": 1, "fs2": -1}, {"px": 160.9, "py": 65.9, "t": 146.4, "a1": 83.6, "b1": 19.3, "a2": 150.8, "b2": -57.6, "l1": 446.4, "k1": -8.2, "l2": 381.6, "k2": 1.6, "fs1": 1, "fs2": -1}, {"px": 171.8, "py": 68.0, "t": 176.8, "a1": 124.1, "b1": 17.9, "a2": 159.5, "b2": -41.3, "l1": 464.2, "k1": -19.3, "l2": 424.4, "k2": -6.4, "fs1": 1, "fs2": -1}, {"px": 176.9, "py": 71.9, "t": 203.5, "a1": 162.6, "b1": -61.6, "a2": 178.3, "b2": 53.1, "l1": 473.8, "k1": -27.6, "l2": 433.1, "k2": -3.9, "fs1": 1, "fs2": -1}, {"px": 179.3, "py": 75.3, "t": 231.6, "a1": 199.8, "b1": -6.5, "a2": 201.9, "b2": 51.7, "l1": 476.0, "k1": -26.5, "l2": 432.3, "k2": 1.3, "fs1": 1, "fs2": -1}, {"px": 179.9, "py": 76.3, "t": 248.8, "a1": 233.5, "b1": -10.1, "a2": 225.3, "b2": -2.0, "l1": 477.1, "k1": -25.8, "l2": 432.8, "k2": 0.2, "fs1": 1, "fs2": -1}, {"px": 179.9, "py": 77.0, "t": 257.9, "a1": 261.0, "b1": -3.6, "a2": 243.8, "b2": 23.1, "l1": 478.0, "k1": -25.3, "l2": 431.7, "k2": -0.4, "fs1": 1, "fs2": -1}, {"px": 179.6, "py": 77.8, "t": 263.9, "a1": 287.4, "b1": 7.8, "a2": 277.1, "b2": 28.7, "l1": 478.3, "k1": -25.2, "l2": 431.1, "k2": -0.6, "fs1": 1, "fs2": -1}, {"px": 179.2, "py": 78.0, "t": 265.7, "a1": 292.7, "b1": 14.0, "a2": 286.9, "b2": 29.2, "l1": 477.8, "k1": -24.7, "l2": 430.7, "k2": -0.0, "fs1": 1, "fs2": -1}, {"px": 178.7, "py": 78.0, "t": 268.1, "a1": 290.2, "b1": 10.8, "a2": 283.9, "b2": 23.4, "l1": 476.7, "k1": -25.0, "l2": 430.0, "k2": 0.2, "fs1": 1, "fs2": -1}, {"px": 178.2, "py": 77.7, "t": 269.2, "a1": 285.3, "b1": 10.6, "a2": 278.8, "b2": 22.4, "l1": 474.5, "k1": -22.3, "l2": 429.7, "k2": -0.5, "fs1": 1, "fs2": -1}, {"px": 178.0, "py": 77.4, "t": 269.6, "a1": 283.6, "b1": 9.4, "a2": 274.2, "b2": 23.4, "l1": 473.2, "k1": -20.4, "l2": 429.1, "k2": -0.1, "fs1": 1, "fs2": -1}, {"px": 177.9, "py": 77.3, "t": 269.3, "a1": 280.0, "b1": 8.0, "a2": 269.8, "b2": 21.7, "l1": 472.6, "k1": -19.8, "l2": 429.0, "k2": 0.1, "fs1": 1, "fs2": -1}]}
+};
+for(const mk in MOCAP){
+  DEMOS[mk] = Object.assign({}, DEMOS[mk], MOCAP[mk], {kf: KFS(MOCAP[mk].kf)});
+}
+
 const TRACK_DEMO = {bruecke:"bruecke", handstand:"handstand", hollow:"hollow", plank:"plank",
   superman:"superman", pushup:"pushup", spagat:"spagat", bogengang:"bogengang"};
 const NAME_DEMO = [
@@ -644,7 +724,11 @@ const NAME_DEMO = [
   [/Kobra/,"kobra"],[/Schmetterling/,"schmetterling"],[/Beinrückseite/,"beinrueckseite"],
   [/Handgelenk-Dehnung/,"handgelenkdehnung"],[/wippen/,"wippen"],[/Wand runterlaufen/,"wandlaufen"],
   [/Ein Bein in der Brücke/,"beinheben"],[/Handstand-Versuche/,"handstandfrei"],
-  [/Radwende/,"radwende"],[/Rad/,"rad"],[/Lieblingssprung/,"toetouch"],[/Strecksprung/,"strecksprung"]
+  [/Radwende/,"radwende"],[/Rad/,"rad"],[/Lieblingssprung/,"toetouch"],
+  [/Sitz-Sprung/,"ffdrillsitz"],[/Kick-over/,"ffdrillkickover"],[/Tuck-Sprünge/,"tuckdrillsprung"],
+  [/Candlestick/,"tuckdrillcandle"],[/Einbeiniger Absprung/,"aerialdrillabsprung"],
+  [/Spreizsprung/,"jumpstar"],[/Pike-Sprung/,"jumppike"],[/Hurdler/,"jumphurdler"],
+  [/Strecksprung/,"strecksprung"]
 ];
 function demoFor(it){
   if(it.trackKey && TRACK_DEMO[it.trackKey]) return TRACK_DEMO[it.trackKey];
@@ -669,8 +753,15 @@ function startDemoAnim(){
 }
 
 /* ============ Logik ============ */
+/* Training level scaling: plain hold timers grow +15% per level (track timers
+   progress through their own step system instead) */
+function tlSec(sec){ return Math.round(sec * (1 + 0.15*(store.tl-1)) / 5) * 5 || sec; }
 function resolveItem(it){
-  if(!it.track) return Object.assign({isTrack:false}, it);
+  if(!it.track){
+    const r = Object.assign({isTrack:false}, it);
+    if(r.sec) r.sec = tlSec(r.sec);
+    return r;
+  }
   const tr = TRACKS[it.track];
   const p = store.progress[it.track];
   const lvl = Math.min(p.lvl, tr.levels.length-1);
@@ -679,8 +770,9 @@ function resolveItem(it){
     isTrack:true, trackKey:it.track, lvl, maxLvl:tr.levels.length-1};
 }
 function ikey(d,s,i){ return d+"-"+s+"-"+i; }
+function dayItems(sec){ return sec.items.filter(it => !(it.minTL > store.tl)); }
 function dayKeys(day){
-  const out=[]; day.sections.forEach((sec,s)=>sec.items.forEach((_,i)=>out.push(ikey(day.id,s,i))));
+  const out=[]; day.sections.forEach((sec,s)=>dayItems(sec).forEach((_,i)=>out.push(ikey(day.id,s,i))));
   return out;
 }
 
@@ -705,11 +797,12 @@ function startTimer(k, sec, ev){
 function stopTimer(){ clearInterval(timerInt); timer=null; render(); }
 function restartTimer(ev){ ev.stopPropagation(); if(timer) startTimer(timer.key, timer.total); }
 
+const TL_MAX = 5, TL_NEED = 3;
 function finishTraining(){
   const day = DAYS.find(d=>d.id===dayId);
-  if(!day || store.stars.length>=TOTAL) return;
+  if(!day) return;
   const tracksInDay = new Set();
-  day.sections.forEach((sec,s)=>sec.items.forEach((it,i)=>{
+  day.sections.forEach((sec,s)=>dayItems(sec).forEach((it,i)=>{
     if(it.track && checked[ikey(day.id,s,i)]) tracksInDay.add(it.track);
   }));
   const ups=[], gated=[];
@@ -723,15 +816,20 @@ function finishTraining(){
       else { p.lvl++; p.cnt=0; ups.push(nx.name || (tr.label+" – Stufe "+(p.lvl+1))); }
     }
   });
-  store.stars.push({d:day.id});
+  store.unit[day.id] = (store.unit[day.id]||0) + 1;
+  let tlUp = false;
+  if(store.tl < TL_MAX && ["A","B","C"].every(d=>store.unit[d]>=TL_NEED)){
+    store.tl++;
+    store.unit = {A:0, B:0, C:0};
+    tlUp = true;
+  }
   saveStore();
-  celebrate = {ups, gated};
+  celebrate = {ups, gated, tlUp};
   checked = {};
   stopTimer();
 }
 
 function closeCelebrate(){ celebrate=null; dayId=null; tab="tracker"; render(); }
-function removeStar(i){ store.stars.splice(i,1); saveStore(); render(); }
 function toggleMs(id){
   const i = store.milestones.indexOf(id);
   if(i>=0) store.milestones.splice(i,1); else store.milestones.push(id);
@@ -744,7 +842,7 @@ function adjustLvl(t, delta){
   saveStore(); render();
 }
 function resetAll(){
-  store = {stars:[], milestones:[], progress:{}};
+  store = {stars:[], milestones:[], progress:{}, levels:{}, tl:1, unit:{A:0,B:0,C:0}};
   TRACK_KEYS.forEach(k=>store.progress[k]={lvl:0,cnt:0});
   confirmReset=false; saveStore(); render();
 }
@@ -805,11 +903,16 @@ function itemHTML(day, it, k){
 function trainingHTML(){
   const day = DAYS.find(d=>d.id===dayId);
   if(!day){
-    let h = '<p style="font-size:15px;font-weight:700;margin:4px 2px 10px">Such dir deinen Trainingstag aus:</p>';
+    let h = '<div class="dayhead" style="background:#EFE7F5;box-shadow:0 4px 0 #D9CCE6;margin-bottom:12px">'
+      +'<span style="font-size:26px">🏋️</span>'
+      +'<div style="flex:1"><div style="font-weight:900;font-size:15px">Trainings-Level '+store.tl+(store.tl>=TL_MAX?' (Maximum!)':'')+'</div>'
+      +'<div style="font-size:12px;color:var(--sub)">Je 3× Tag A, B und C = nächstes Level</div></div></div>';
+    h += '<p style="font-size:15px;font-weight:700;margin:4px 2px 10px">Such dir deinen Trainingstag aus:</p>';
     DAYS.forEach(d=>{
+      const u = Math.min(store.unit[d.id]||0, TL_NEED);
       h += '<button class="daycard" style="background:'+d.tint+';box-shadow:0 4px 0 '+d.color+'" onclick="openDay(\''+d.id+'\')">'
         +'<span class="em">'+d.emoji+'</span><span><span class="nm">Tag '+d.id+': '+d.name+'</span>'
-        +'<span class="in">'+d.sections.length+' Blöcke · ca. 25–30 Min</span></span>'
+        +'<span class="in">'+'⭐'.repeat(u)+'☆'.repeat(TL_NEED-u)+' in diesem Level · ca. 25–30 Min</span></span>'
         +'<span class="ar" style="color:'+d.color+'">›</span></button>';
     });
     h += '<div class="safety"><b style="color:var(--orange)">! SICHERHEIT:</b> Immer auf der Matte üben. Bogengang ohne Hilfe erst mit Trainer-Okay. Flick-Flack &amp; Salto: <b>nur im Verein!</b></div>';
@@ -825,39 +928,48 @@ function trainingHTML(){
     +'<div style="font-weight:900;font-size:14px">'+done+'/'+keys.length+'</div></div>';
   day.sections.forEach((sec,s)=>{
     h += '<div class="sectitle" style="background:'+day.color+'">'+esc(sec.title)+'</div>';
-    sec.items.forEach((raw,i)=>{ h += itemHTML(day, resolveItem(raw), ikey(day.id,s,i)); });
+    dayItems(sec).forEach((raw,i)=>{
+      const it = resolveItem(raw);
+      if(raw.minTL === store.tl) it.note = (it.note ? it.note+' · ' : '')+'NEU in Level '+store.tl+'!';
+      h += itemHTML(day, it, ikey(day.id,s,i));
+    });
   });
   if(done===keys.length){
-    if(store.stars.length<TOTAL)
-      h += '<button class="bigbtn" onclick="finishTraining();render()">⭐ Training abschließen &amp; Stern holen!</button>';
-    else
-      h += '<div class="safety" style="text-align:center">Alle 12 Sterne sind voll – Zeit für deine Belohnung! 🎉</div>';
+    h += '<button class="bigbtn" onclick="finishTraining();render()">⭐ Training abschließen &amp; Stern holen!</button>';
   }
   return h;
 }
 
 function trackerHTML(){
-  const wc=[C.magenta,C.teal,C.purple,C.orange];
-  let h = '<div class="card">';
-  for(let w=0; w<4; w++){
-    h += '<div class="wrow"><div class="wlabel" style="background:'+wc[w]+'">Woche '+(w+1)+'</div><div class="slots">';
-    for(let t=0; t<3; t++){
-      const idx=w*3+t, st=store.stars[idx];
-      h += st
-        ? '<button class="slot full" onclick="removeStar('+idx+')" title="Tippen zum Entfernen">⭐<small>'+st.d+'</small></button>'
+  const atMax = store.tl >= TL_MAX;
+  let h = '<div class="goldbox" style="margin:0 0 14px">'
+    +'<div style="font-size:30px">💪</div>'
+    +'<div style="font-weight:900;font-size:18px">Trainings-Level '+store.tl+(atMax?' – Maximum!':'')+'</div>'
+    +'<div style="font-size:13px;color:var(--sub)">'
+    +(atMax ? 'Du bist ganz oben – bleib dran und halte dein Niveau!'
+            : 'Sammle je '+TL_NEED+' Einheiten pro Trainingstag für Level '+(store.tl+1)+'!')
+    +'</div></div>';
+  h += '<div class="card">';
+  DAYS.forEach(d=>{
+    const u = store.unit[d.id]||0;
+    h += '<div class="wrow"><div class="wlabel" style="background:'+d.color+'">Tag '+d.id+'</div><div class="slots">';
+    for(let t=0; t<TL_NEED; t++){
+      h += t < u
+        ? '<button class="slot full">⭐<small>'+d.id+'</small></button>'
         : '<button class="slot">☆</button>';
     }
-    h += '</div></div>';
-  }
+    h += '</div>'+(u>TL_NEED?'<span style="font-weight:900;font-size:12px;margin-left:8px;color:var(--sub)">+'+(u-TL_NEED)+' extra</span>':'')+'</div>';
+  });
   h += '</div>';
-  const n = store.stars.length;
-  h += '<div class="goldbox"><div style="font-weight:900;font-size:16px">'+n+' / '+TOTAL+' Sterne</div>'
-    +'<div style="font-size:13.5px;color:var(--sub);margin-top:2px">'
-    +(n>=TOTAL ? 'GESCHAFFT! Hol dir deine Belohnung! 🎉' : 'Noch '+(TOTAL-n)+' Trainings bis zur Belohnung!')
-    +'</div></div>';
+  const missing = DAYS.reduce((acc,d)=>acc + Math.max(0, TL_NEED-(store.unit[d.id]||0)), 0);
+  if(!atMax){
+    h += '<div style="font-size:13px;color:var(--sub);text-align:center;margin-top:10px">Noch '
+      +missing+' Einheit'+(missing===1?'':'en')+' bis Trainings-Level '+(store.tl+1)
+      +' – dann steigen die Haltezeiten leicht und neue Übungen warten!</div>';
+  }
   h += '<div style="text-align:center;margin-top:18px">'
     + (confirmReset
-      ? '<button class="reset2" onclick="resetAll()">Wirklich alles löschen (Sterne, Ziele &amp; Stufen)?</button>'
+      ? '<button class="reset2" onclick="resetAll()">Wirklich alles löschen (Level, Ziele &amp; Stufen)?</button>'
       : '<button class="reset" onclick="confirmReset=true;render()">Alles zurücksetzen</button>')
     + '</div>';
   return h;
@@ -983,11 +1095,16 @@ function overlaysHTML(){
     if(celebrate.gated.length){
       gated = '<div style="background:#FFF3D6;color:var(--ink);border-radius:16px;padding:10px 14px;margin-top:12px;font-size:13.5px;max-width:320px">🔒 Die nächste Bogengang-Stufe wartet auf das <b>Trainer-Okay</b> (im Ziele-Tab abhaken).</div>';
     }
+    const missing = DAYS.reduce((acc,d)=>acc + Math.max(0, TL_NEED-(store.unit[d.id]||0)), 0);
+    const sub = celebrate.tlUp
+      ? 'Haltezeiten steigen leicht – und neue Übungen sind freigeschaltet!'
+      : (store.tl>=TL_MAX ? 'Maximal-Level – weiter so!' : 'Noch '+missing+' Einheit'+(missing===1?'':'en')+' bis Trainings-Level '+(store.tl+1)+'!');
     h += '<div class="overlay" onclick="closeCelebrate()">'
-      +'<div style="font-size:84px">⭐</div>'
-      +'<div style="color:#fff;font-size:26px;font-weight:900;margin-top:6px">Training geschafft!</div>'
+      +'<div style="font-size:84px">'+(celebrate.tlUp?'🏆':'⭐')+'</div>'
+      +'<div style="color:#fff;font-size:26px;font-weight:900;margin-top:6px">'
+      +(celebrate.tlUp?'Trainings-Level '+store.tl+' erreicht!':'Training geschafft!')+'</div>'
       + ups + gated
-      +'<div style="color:#E7DBF3;font-size:15px;margin-top:12px">'+(TOTAL-store.stars.length)+' Sterne bis zur Belohnung!</div>'
+      +'<div style="color:#E7DBF3;font-size:15px;margin-top:12px;max-width:300px">'+sub+'</div>'
       +'<div style="color:#B9A6CC;font-size:13px;margin-top:14px">Tippen zum Weitermachen</div></div>';
   }
   return h;
