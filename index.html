@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tumbling-Star</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tumbling-Star">
+<meta name="theme-color" content="#6C2BD9">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap');
+:root{
+  --bg:#FBF3F8; --ink:#2E1B3A; --sub:#7A6B8A; --magenta:#D6218C;
+  --purple:#6C2BD9; --teal:#0E9E9E; --gold:#F5B301; --orange:#F07818;
+  --card:#FFFFFF; --shadow:#E8DEF0;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Baloo 2', ui-rounded, 'Nunito', 'Segoe UI', system-ui, sans-serif;
+}
+#app{max-width:460px; margin:0 auto; padding:16px 14px 44px;
+  padding-top:calc(16px + env(safe-area-inset-top));}
+h1{text-align:center; font-size:30px; font-weight:800; margin:4px 0 0}
+.sub{text-align:center; color:var(--sub); margin:2px 0 14px; font-size:14px}
+button{font-family:inherit; cursor:pointer}
+.tabs{display:flex; gap:6px; margin-bottom:14px}
+.tab{flex:1; padding:10px 4px; border-radius:14px; border:none; font-size:14px;
+  font-weight:800; background:#EFE7F5; color:var(--ink); box-shadow:0 3px 0 #D9CCE6}
+.tab.on{background:var(--purple); color:#fff; box-shadow:0 3px 0 #4A1D99}
+.daycard{width:100%; text-align:left; border:none; border-radius:20px;
+  padding:16px; margin-bottom:12px; display:flex; align-items:center; gap:12px}
+.daycard .em{font-size:34px}
+.daycard .nm{font-size:18px; font-weight:900; display:block}
+.daycard .in{font-size:13px; color:var(--sub)}
+.daycard .ar{margin-left:auto; font-size:22px}
+.sectitle{color:#fff; border-radius:12px; padding:8px 12px; font-weight:800;
+  font-size:15px; margin:16px 0 8px}
+.item{display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  background:var(--card); border:none; border-radius:14px; padding:11px 12px;
+  margin-bottom:7px; box-shadow:0 3px 0 var(--shadow)}
+.item.done{background:#F1FBF3; box-shadow:0 3px 0 #BFE3C6}
+.circle{min-width:26px; height:26px; border-radius:50%; background:#fff; color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:900}
+.item.done .circle{background:#4C9A5F; border-color:#4C9A5F !important}
+.iname{font-weight:800; font-size:14.5px; display:block}
+.item.done .iname{text-decoration:line-through; opacity:.6}
+.inote{font-size:12.5px; color:var(--sub)}
+.lvl{font-size:10.5px; font-weight:900; color:#fff; border-radius:999px;
+  padding:2px 7px; margin-left:6px; vertical-align:middle; display:inline-block}
+.timerbtn{margin-left:auto; border:none; border-radius:999px; padding:6px 12px;
+  font-weight:800; font-size:13px; color:#fff; white-space:nowrap}
+.bigbtn{width:100%; padding:14px; border-radius:16px; border:none; font-size:17px;
+  font-weight:800; color:#fff; margin-top:14px; background:var(--gold);
+  box-shadow:0 4px 0 #C48F00}
+.safety{background:#FFF3D6; border:2px solid var(--orange); border-radius:16px;
+  padding:12px 14px; font-size:13.5px; line-height:1.5; margin-top:16px}
+.back{border:none; background:none; font-weight:800; font-size:14px;
+  color:var(--sub); padding:2px 0 8px}
+.dayhead{border-radius:18px; padding:12px 14px; display:flex; align-items:center; gap:10px}
+.pbar{height:10px; background:#fff; border-radius:999px; margin-top:6px; overflow:hidden}
+.pfill{height:100%; border-radius:999px; transition:width .25s}
+.overlay{position:fixed; inset:0; background:rgba(46,27,58,.9); display:flex;
+  flex-direction:column; align-items:center; justify-content:center; z-index:50;
+  text-align:center; padding:24px}
+.ring{width:190px; height:190px; border-radius:50%; display:flex;
+  align-items:center; justify-content:center}
+.ringin{width:158px; height:158px; border-radius:50%; background:var(--ink);
+  color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center}
+.tnum{font-size:56px; font-weight:900}
+.card{background:var(--card); border-radius:20px; padding:14px 14px 6px;
+  box-shadow:0 4px 0 var(--shadow)}
+.wrow{display:flex; align-items:center; margin-bottom:10px}
+.wlabel{color:#fff; border-radius:10px; padding:7px 10px; font-weight:900;
+  font-size:13px; min-width:74px; text-align:center}
+.slots{display:flex; gap:8px; margin-left:10px}
+.slot{width:52px; height:46px; border-radius:12px; border:2px dashed #D9CCE6;
+  background:#FAF6FC; font-size:14px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; line-height:1; color:#C9BBD8}
+.slot.full{border-color:transparent; background:#FFF6DB; font-size:22px; color:inherit}
+.slot.full small{font-size:10px; font-weight:900; color:var(--sub)}
+.goldbox{background:#FFF6DB; border-radius:18px; padding:14px 16px; margin-top:14px;
+  box-shadow:0 4px 0 var(--gold); text-align:center}
+.track{background:var(--card); border-radius:14px; padding:10px 12px; margin-bottom:7px;
+  box-shadow:0 3px 0 var(--shadow); display:flex; align-items:center; gap:10px}
+.dots{display:flex; gap:4px; margin-top:5px; align-items:center}
+.dot{width:10px; height:10px; border-radius:50%; background:#EDE4F3; display:inline-block}
+.dot.on{background:var(--gold)}
+.pm{border:none; border-radius:8px; width:30px; height:26px; font-weight:900;
+  background:#EFE7F5; color:var(--ink)}
+.reset{border:none; background:none; color:var(--sub); font-size:12.5px;
+  text-decoration:underline}
+.reset2{border:none; background:#E2654F; color:#fff; font-weight:800; font-size:13px;
+  border-radius:999px; padding:8px 16px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============ Daten ============ */
+const C = {magenta:"#D6218C", purple:"#6C2BD9", teal:"#0E9E9E", gold:"#F5B301", orange:"#F07818"};
+
+const TRACKS = {
+  bruecke:{label:"Brücke halten", stepAfter:2, levels:[
+    {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"}]},
+  handstand:{label:"Handstand an der Wand", stepAfter:2, levels:[
+    {sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"},{sec:30,note:"3 Durchgänge"}]},
+  hollow:{label:"Hollow Body (Bananenlage)", stepAfter:2, levels:[
+    {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"}]},
+  plank:{label:"Unterarmstütz (Plank)", stepAfter:2, levels:[{sec:20},{sec:30},{sec:45}]},
+  superman:{label:"Superman (Bauchlage)", stepAfter:2, levels:[
+    {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"}]},
+  pushup:{label:"Liegestütze auf den Knien", stepAfter:2, levels:[
+    {note:"2x 6"},{note:"2x 8"},{note:"2x 10"}]},
+  spagat:{label:"Spagat üben", stepAfter:2, sides:true, levels:[{sec:20},{sec:30},{sec:40}]},
+  bogengang:{label:"Bogengang-Linie", stepAfter:3, levels:[
+    {name:"Brücke von der Erhöhung", note:"Sofa/Kasten, 5x"},
+    {name:"Kick-over von der Erhöhung", note:"5 Versuche"},
+    {name:"Bogengang rückwärts mit Spotter", note:"5 Versuche"},
+    {name:"Bogengang mit wenig Hilfe", note:"5 Versuche"},
+    {name:"Bogengang allein", note:"5 Versuche", gate:"m6"}]}
+};
+const TRACK_KEYS = Object.keys(TRACKS);
+
+const DAYS = [
+  {id:"A", name:"Brücken-Tag", emoji:"🌉", color:C.magenta, tint:"#FCE4F1", sections:[
+    {title:"Aufwärmen", items:[
+      {name:"20 Hampelmänner"},
+      {name:"Armkreisen groß", note:"10x vor + zurück"},
+      {name:"Katze-Kuh auf der Matte", note:"8x langsam"},
+      {name:"Handgelenke kreisen", note:"10x pro Seite"}]},
+    {title:"Dehnen – lange halten!", items:[
+      {name:"Schulterdehnung an der Wand", sec:30},
+      {name:"Ausfallschritt-Dehnung", sec:30, sides:true},
+      {name:"Kobra-Dehnung", sec:30},
+      {track:"spagat"}]},
+    {title:"Brücken-Drills", items:[
+      {track:"bruecke"},
+      {name:"Brücke vor- und zurückwippen", note:"10x"},
+      {name:"Brücke: Wand runterlaufen", note:"3x"},
+      {track:"bogengang"}]},
+    {title:"Abschluss", items:[
+      {name:"5x Rad – Landung stehen!", note:"Beine strecken"},
+      {name:"3x Lieblingssprung", note:"Toe Touch / Tuck"}]}
+  ]},
+  {id:"B", name:"Kraft-Tag", emoji:"💪", color:C.teal, tint:"#DFF4F4", sections:[
+    {title:"Aufwärmen", items:[
+      {name:"Hopserlauf auf der Stelle", sec:30},
+      {name:"Bärengang", note:"2x durchs Zimmer"},
+      {name:"Schulterkreisen", note:"10x pro Richtung"},
+      {name:"10 Kniebeugen"}]},
+    {title:"Kraft", items:[
+      {track:"handstand"},{track:"hollow"},{track:"pushup"},{track:"superman"},{track:"plank"}]},
+    {title:"Dehnen – lange halten!", items:[
+      {name:"Schmetterling-Sitz", sec:30},
+      {name:"Beinrückseite dehnen", sec:30, sides:true},
+      {name:"Handgelenk-Dehnung", sec:30}]},
+    {title:"Abschluss", items:[
+      {name:"Handstand-Versuche mit Spotter", note:"5 Versuche"},
+      {name:"3x Radschlag sauber"}]}
+  ]},
+  {id:"C", name:"Technik-Tag", emoji:"🤸", color:C.purple, tint:"#EEE6FB", sections:[
+    {title:"Aufwärmen", items:[
+      {name:"20 Strecksprünge"},
+      {name:"Toe-Touch-Vorbereitung", note:"5x locker"},
+      {name:"Handgelenke kreisen", note:"10x pro Seite"},
+      {name:"Katze-Kuh auf der Matte", note:"8x langsam"}]},
+    {title:"Tumbling-Technik", items:[
+      {name:"5x Rad – Landung stehen!", note:"Beine strecken"},
+      {name:"5x Radschlag sauber"},
+      {name:"3x Radwende", note:"Füße zusammen landen"},
+      {name:"Radwende + Strecksprung", note:"3x"}]},
+    {title:"Bogengang-Drills", items:[
+      {track:"bogengang"},
+      {name:"Ein Bein in der Brücke heben", note:"je Bein 5x"}]},
+    {title:"Dehnen – lange halten!", items:[
+      {track:"spagat"},{track:"bruecke"},
+      {name:"Schulterdehnung an der Wand", sec:30}]}
+  ]}
+];
+
+const MILESTONES = [
+  {id:"m1", name:"Brücke 15 Sekunden halten"},
+  {id:"m2", name:"Wand komplett runterlaufen"},
+  {id:"m3", name:"Handstand 20 Sek. an der Wand"},
+  {id:"m4", name:"Spagat fast ganz unten"},
+  {id:"m5", name:"Bogengang mit wenig Hilfe"},
+  {id:"m6", name:"Trainer-Okay: Bogengang allein üben"}
+];
+
+const TOTAL = 12;
+const KEY = "tumbling-star";
+
+/* ============ State ============ */
+let store = {stars:[], milestones:[], progress:{}};
+try {
+  const raw = localStorage.getItem(KEY);
+  if (raw) store = Object.assign(store, JSON.parse(raw));
+} catch(e) {}
+TRACK_KEYS.forEach(k => { if(!store.progress[k]) store.progress[k] = {lvl:0, cnt:0}; });
+
+let tab = "training", dayId = null, checked = {}, confirmReset = false;
+let timer = null, timerInt = null, celebrate = null;
+
+function saveStore(){
+  try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e) {}
+}
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+
+/* ============ Logik ============ */
+function resolveItem(it){
+  if(!it.track) return Object.assign({isTrack:false}, it);
+  const tr = TRACKS[it.track];
+  const p = store.progress[it.track];
+  const lvl = Math.min(p.lvl, tr.levels.length-1);
+  const d = tr.levels[lvl];
+  return {name:d.name||tr.label, note:d.note, sec:d.sec, sides:tr.sides,
+    isTrack:true, trackKey:it.track, lvl, maxLvl:tr.levels.length-1};
+}
+function ikey(d,s,i){ return d+"-"+s+"-"+i; }
+function dayKeys(day){
+  const out=[]; day.sections.forEach((sec,s)=>sec.items.forEach((_,i)=>out.push(ikey(day.id,s,i))));
+  return out;
+}
+
+function toggleItem(k){
+  if(timer && timer.key===k) stopTimer();
+  checked[k] = !checked[k];
+  render();
+}
+
+function startTimer(k, sec, ev){
+  if(ev) ev.stopPropagation();
+  clearInterval(timerInt);
+  timer = {key:k, total:sec, left:sec};
+  timerInt = setInterval(()=>{
+    if(!timer) return;
+    timer.left--;
+    if(timer.left<=0){ timer.left=0; clearInterval(timerInt); checked[timer.key]=true; }
+    renderTimer();
+  },1000);
+  render();
+}
+function stopTimer(){ clearInterval(timerInt); timer=null; render(); }
+function restartTimer(ev){ ev.stopPropagation(); if(timer) startTimer(timer.key, timer.total); }
+
+function finishTraining(){
+  const day = DAYS.find(d=>d.id===dayId);
+  if(!day || store.stars.length>=TOTAL) return;
+  const tracksInDay = new Set();
+  day.sections.forEach((sec,s)=>sec.items.forEach((it,i)=>{
+    if(it.track && checked[ikey(day.id,s,i)]) tracksInDay.add(it.track);
+  }));
+  const ups=[], gated=[];
+  tracksInDay.forEach(t=>{
+    const tr=TRACKS[t], p=store.progress[t];
+    if(p.lvl >= tr.levels.length-1) return;
+    p.cnt++;
+    if(p.cnt >= tr.stepAfter){
+      const nx = tr.levels[p.lvl+1];
+      if(nx.gate && !store.milestones.includes(nx.gate)){ gated.push(tr.label); }
+      else { p.lvl++; p.cnt=0; ups.push(nx.name || (tr.label+" – Stufe "+(p.lvl+1))); }
+    }
+  });
+  store.stars.push({d:day.id});
+  saveStore();
+  celebrate = {ups, gated};
+  checked = {};
+  stopTimer();
+}
+
+function closeCelebrate(){ celebrate=null; dayId=null; tab="tracker"; render(); }
+function removeStar(i){ store.stars.splice(i,1); saveStore(); render(); }
+function toggleMs(id){
+  const i = store.milestones.indexOf(id);
+  if(i>=0) store.milestones.splice(i,1); else store.milestones.push(id);
+  saveStore(); render();
+}
+function adjustLvl(t, delta){
+  const tr=TRACKS[t], p=store.progress[t];
+  p.lvl = Math.max(0, Math.min(tr.levels.length-1, p.lvl+delta));
+  p.cnt = 0;
+  saveStore(); render();
+}
+function resetAll(){
+  store = {stars:[], milestones:[], progress:{}};
+  TRACK_KEYS.forEach(k=>store.progress[k]={lvl:0,cnt:0});
+  confirmReset=false; saveStore(); render();
+}
+function setTab(t){ tab=t; confirmReset=false; render(); }
+function openDay(id){ checked={}; dayId=id; render(); }
+function backToDays(){ dayId=null; stopTimer(); }
+
+/* ============ Render ============ */
+function itemHTML(day, it, k){
+  const on = !!checked[k];
+  const badge = it.isTrack
+    ? '<span class="lvl" style="background:'+day.color+'">Stufe '+(it.lvl+1)+'/'+(it.maxLvl+1)+'</span>' : '';
+  const note = (it.note||it.sides)
+    ? '<span class="inote">'+esc(it.note||'')+(it.note&&it.sides?' · ':'')+(it.sides?'je Seite!':'')+'</span>' : '';
+  const tbtn = (it.sec && !on)
+    ? '<span class="timerbtn" style="background:'+day.color+'" onclick="startTimer(\''+k+'\','+it.sec+',event)">⏱ '+it.sec+'s</span>' : '';
+  return '<button class="item'+(on?' done':'')+'" onclick="toggleItem(\''+k+'\')">'
+    +'<span class="circle" style="border:2.5px solid '+day.color+'">'+(on?'✓':'')+'</span>'
+    +'<span style="flex:1"><span class="iname">'+esc(it.name)+badge+'</span>'+note+'</span>'
+    +tbtn+'</button>';
+}
+
+function trainingHTML(){
+  const day = DAYS.find(d=>d.id===dayId);
+  if(!day){
+    let h = '<p style="font-size:15px;font-weight:700;margin:4px 2px 10px">Such dir deinen Trainingstag aus:</p>';
+    DAYS.forEach(d=>{
+      h += '<button class="daycard" style="background:'+d.tint+';box-shadow:0 4px 0 '+d.color+'" onclick="openDay(\''+d.id+'\')">'
+        +'<span class="em">'+d.emoji+'</span><span><span class="nm">Tag '+d.id+': '+d.name+'</span>'
+        +'<span class="in">'+d.sections.length+' Blöcke · ca. 25–30 Min</span></span>'
+        +'<span class="ar" style="color:'+d.color+'">›</span></button>';
+    });
+    h += '<div class="safety"><b style="color:var(--orange)">! SICHERHEIT:</b> Immer auf der Matte üben. Bogengang ohne Hilfe erst mit Trainer-Okay. Flick-Flack &amp; Salto: <b>nur im Verein!</b></div>';
+    return h;
+  }
+  const keys = dayKeys(day);
+  const done = keys.filter(k=>checked[k]).length;
+  let h = '<button class="back" onclick="backToDays();render()">‹ Zurück zur Auswahl</button>';
+  h += '<div class="dayhead" style="background:'+day.tint+';box-shadow:0 4px 0 '+day.color+'">'
+    +'<span style="font-size:30px">'+day.emoji+'</span>'
+    +'<div style="flex:1"><div style="font-weight:900;font-size:17px">Tag '+day.id+': '+day.name+'</div>'
+    +'<div class="pbar"><div class="pfill" style="width:'+(done/keys.length*100)+'%;background:'+day.color+'"></div></div></div>'
+    +'<div style="font-weight:900;font-size:14px">'+done+'/'+keys.length+'</div></div>';
+  day.sections.forEach((sec,s)=>{
+    h += '<div class="sectitle" style="background:'+day.color+'">'+esc(sec.title)+'</div>';
+    sec.items.forEach((raw,i)=>{ h += itemHTML(day, resolveItem(raw), ikey(day.id,s,i)); });
+  });
+  if(done===keys.length){
+    if(store.stars.length<TOTAL)
+      h += '<button class="bigbtn" onclick="finishTraining();render()">⭐ Training abschließen &amp; Stern holen!</button>';
+    else
+      h += '<div class="safety" style="text-align:center">Alle 12 Sterne sind voll – Zeit für deine Belohnung! 🎉</div>';
+  }
+  return h;
+}
+
+function trackerHTML(){
+  const wc=[C.magenta,C.teal,C.purple,C.orange];
+  let h = '<div class="card">';
+  for(let w=0; w<4; w++){
+    h += '<div class="wrow"><div class="wlabel" style="background:'+wc[w]+'">Woche '+(w+1)+'</div><div class="slots">';
+    for(let t=0; t<3; t++){
+      const idx=w*3+t, st=store.stars[idx];
+      h += st
+        ? '<button class="slot full" onclick="removeStar('+idx+')" title="Tippen zum Entfernen">⭐<small>'+st.d+'</small></button>'
+        : '<button class="slot">☆</button>';
+    }
+    h += '</div></div>';
+  }
+  h += '</div>';
+  const n = store.stars.length;
+  h += '<div class="goldbox"><div style="font-weight:900;font-size:16px">'+n+' / '+TOTAL+' Sterne</div>'
+    +'<div style="font-size:13.5px;color:var(--sub);margin-top:2px">'
+    +(n>=TOTAL ? 'GESCHAFFT! Hol dir deine Belohnung! 🎉' : 'Noch '+(TOTAL-n)+' Trainings bis zur Belohnung!')
+    +'</div></div>';
+  h += '<div style="text-align:center;margin-top:18px">'
+    + (confirmReset
+      ? '<button class="reset2" onclick="resetAll()">Wirklich alles löschen (Sterne, Ziele &amp; Stufen)?</button>'
+      : '<button class="reset" onclick="confirmReset=true;render()">Alles zurücksetzen</button>')
+    + '</div>';
+  return h;
+}
+
+function zieleHTML(){
+  let h = '<p style="font-size:15px;font-weight:700;margin:4px 2px 10px">Hak ab, was du schon kannst:</p>';
+  MILESTONES.forEach(m=>{
+    const on = store.milestones.includes(m.id);
+    h += '<button class="item'+(on?' done':'')+'" onclick="toggleMs(\''+m.id+'\')">'
+      +'<span class="circle" style="border:2.5px solid var(--purple)">'+(on?'✓':'')+'</span>'
+      +'<span class="iname" style="flex:1">'+esc(m.name)+'</span>'
+      +(on?'<span>🏆</span>':'')+'</button>';
+  });
+  h += '<div class="sectitle" style="background:var(--teal)">Deine Stufen</div>';
+  h += '<p style="font-size:12.5px;color:var(--sub);margin:0 2px 8px">Übungen steigen automatisch, wenn du sie oft genug im Training gemacht hast. Eltern können hier anpassen (+/–).</p>';
+  TRACK_KEYS.forEach(t=>{
+    const tr=TRACKS[t], p=store.progress[t];
+    const def=tr.levels[Math.min(p.lvl,tr.levels.length-1)];
+    const atMax = p.lvl>=tr.levels.length-1;
+    const nextGated = !atMax && tr.levels[p.lvl+1].gate && !store.milestones.includes(tr.levels[p.lvl+1].gate);
+    let dots='';
+    for(let i=0;i<tr.stepAfter;i++) dots += '<span class="dot'+(i<p.cnt?' on':'')+'"></span>';
+    const cur = def.name ? esc(def.name)+(def.sec?' ('+def.sec+' Sek.)':'')
+      : (def.sec ? def.sec+' Sek.' : esc(def.note||''));
+    const status = atMax ? 'Höchste Stufe! 🏆'
+      : nextGated ? '🔒 wartet auf Trainer-Okay'
+      : p.cnt+'/'+tr.stepAfter+' bis zur nächsten Stufe';
+    h += '<div class="track"><div style="flex:1">'
+      +'<div style="font-weight:800;font-size:14px">'+esc(tr.label)
+      +' <span class="lvl" style="background:var(--teal)">Stufe '+(p.lvl+1)+'/'+tr.levels.length+'</span></div>'
+      +'<div style="font-size:12.5px;color:var(--sub)">Aktuell: '+cur+'</div>'
+      +'<div class="dots">'+dots+'<span style="font-size:11px;color:var(--sub);margin-left:4px">'+status+'</span></div>'
+      +'</div><div style="display:flex;flex-direction:column;gap:4px">'
+      +'<button class="pm" onclick="adjustLvl(\''+t+'\',1)">+</button>'
+      +'<button class="pm" onclick="adjustLvl(\''+t+'\',-1)">–</button>'
+      +'</div></div>';
+  });
+  h += '<div class="safety"><b style="color:var(--orange)">Denk dran:</b> „Bogengang allein" wird erst freigeschaltet, wenn das <b>Trainer-Okay</b> oben abgehakt ist. Und Flick-Flack &amp; Salto lernst du <b>nur im Verein!</b></div>';
+  return h;
+}
+
+function overlaysHTML(){
+  let h='';
+  if(timer){
+    h += '<div class="overlay" id="timerOverlay" onclick="stopTimer()"></div>';
+  }
+  if(celebrate){
+    let ups='', gated='';
+    if(celebrate.ups.length){
+      ups = '<div style="background:var(--gold);color:var(--ink);border-radius:16px;padding:12px 16px;margin-top:14px;font-weight:800;font-size:15px;max-width:320px">⬆️ Neue Stufe!'
+        + celebrate.ups.map(u=>'<div style="font-size:14px;font-weight:700;margin-top:4px">'+esc(u)+'</div>').join('') + '</div>';
+    }
+    if(celebrate.gated.length){
+      gated = '<div style="background:#FFF3D6;color:var(--ink);border-radius:16px;padding:10px 14px;margin-top:12px;font-size:13.5px;max-width:320px">🔒 Die nächste Bogengang-Stufe wartet auf das <b>Trainer-Okay</b> (im Ziele-Tab abhaken).</div>';
+    }
+    h += '<div class="overlay" onclick="closeCelebrate()">'
+      +'<div style="font-size:84px">⭐</div>'
+      +'<div style="color:#fff;font-size:26px;font-weight:900;margin-top:6px">Training geschafft!</div>'
+      + ups + gated
+      +'<div style="color:#E7DBF3;font-size:15px;margin-top:12px">'+(TOTAL-store.stars.length)+' Sterne bis zur Belohnung!</div>'
+      +'<div style="color:#B9A6CC;font-size:13px;margin-top:14px">Tippen zum Weitermachen</div></div>';
+  }
+  return h;
+}
+
+function renderTimer(){
+  const el = document.getElementById("timerOverlay");
+  if(!el || !timer) return;
+  const done = timer.left===0;
+  const deg = (1 - timer.left/timer.total) * 360;
+  el.innerHTML =
+    '<div class="ring" style="background:conic-gradient(var(--gold) '+deg+'deg, #55446B 0deg)">'
+    +'<div class="ringin"><div class="tnum">'+(done?'⭐':timer.left)+'</div>'
+    +'<div style="font-size:14px;opacity:.8">'+(done?'Geschafft!':'Sekunden')+'</div></div></div>'
+    +'<div style="color:#fff;margin-top:18px;font-size:15px;font-weight:700">'
+    +(done?'Tippen zum Schließen':'Halten … du schaffst das!')+'</div>'
+    +(done?'<button onclick="restartTimer(event)" style="margin-top:14px;border:none;border-radius:999px;padding:10px 18px;font-weight:800;font-size:14px;background:var(--gold);color:var(--ink)">🔁 Nochmal (andere Seite)</button>':'');
+}
+
+function render(){
+  const app = document.getElementById("app");
+  let h = '<h1>⭐ Tumbling-Star</h1><p class="sub">Dein Weg zum Bogengang – Stufe für Stufe</p>';
+  h += '<div class="tabs">'
+    +'<button class="tab'+(tab==="training"?' on':'')+'" onclick="setTab(\'training\')">🏋️ Training</button>'
+    +'<button class="tab'+(tab==="tracker"?' on':'')+'" onclick="setTab(\'tracker\')">⭐ Sterne</button>'
+    +'<button class="tab'+(tab==="ziele"?' on':'')+'" onclick="setTab(\'ziele\')">🏆 Ziele</button></div>';
+  if(tab==="training") h += trainingHTML();
+  else if(tab==="tracker") h += trackerHTML();
+  else h += zieleHTML();
+  h += overlaysHTML();
+  app.innerHTML = h;
+  renderTimer();
+}
+render();
+</script>
+</body>
+</html>
