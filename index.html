@@ -130,7 +130,26 @@ button{font-family:inherit; cursor:pointer}
 </style>
 </head>
 <body>
+<div id="splash" style="display:none; position:fixed; inset:0; background:#17141D; z-index:99;
+  flex-direction:column; align-items:center; justify-content:center">
+  <video id="splashVid" src="intro.mp4" muted playsinline
+    style="max-width:88%; max-height:72%; border-radius:22px"></video>
+  <div style="color:#D9B454; font-weight:800; font-size:14px; margin-top:16px">Tippen zum Starten</div>
+</div>
 <div id="app"></div>
+<script>
+/* Intro splash: plays intro.mp4 on app start if the file exists; tap to skip.
+   Silently removed when no video is present. */
+(function(){
+  const sp = document.getElementById("splash");
+  const v = document.getElementById("splashVid");
+  const close = ()=>{ sp.style.display="none"; v.pause(); };
+  v.addEventListener("canplay", ()=>{ sp.style.display="flex"; v.play().catch(close); }, {once:true});
+  v.addEventListener("ended", close);
+  v.addEventListener("error", close);
+  sp.addEventListener("click", close);
+})();
+</script>
 <script>
 /* ============ Daten ============ */
 const C = {magenta:"#D6218C", purple:"#6C2BD9", teal:"#0E9E9E", gold:"#F5B301", orange:"#F07818"};
@@ -284,6 +303,82 @@ const LEVELS = [
     {id:"j6", name:"J6: Sprung-Kombination (2 in Folge)", cat:"heim", demo:"jumpkombi"},
     {id:"j7", name:"J7: Sprung + Flick-Flack", cat:"verein", demo:"ff"}]}
 ];
+/* Skill lines: complete ladders from first drill to the CCVD target skill.
+   Home steps are trainable, club steps are confirm-only checkpoints. */
+const LINES = [
+  {id:"lnBG", name:"Bogengang-Linie", ziel:"CCVD Level 1", steps:[
+    {id:"bg1", name:"Brücke von der Erhöhung", cat:"heim", demo:"bruecke",
+     info:"Vom Sofa oder Kasten in die Brücke – so lernst du das Gefühl, ohne ganz tief runter zu müssen."},
+    {id:"bg2", name:"Kick-over von der Erhöhung", cat:"heim", demo:"ffdrillkickover",
+     info:"Ein Bein schwingt über dich rüber. Die Erhöhung macht den Weg kurz – mit Spotter üben!"},
+    {id:"bg3", name:"Bogengang mit Spotter", cat:"heim", demo:"bogengang",
+     info:"Jetzt die ganze Bewegung vom Boden – jemand hält dich dabei fest."},
+    {id:"bg4", name:"Bogengang mit wenig Hilfe", cat:"heim", demo:"bogengang",
+     info:"Der Spotter hilft nur noch ganz leicht. Du machst fast alles selbst!"},
+    {id:"bg5", name:"Bogengang allein", cat:"verein", demo:"bogengang",
+     info:"Der große Moment – aber erst, wenn dein Trainer das Okay gibt!"}]},
+  {id:"lnFF", name:"Flick-Flack-Linie", ziel:"CCVD Level 2–3", steps:[
+    {id:"ff1", name:"Sitz-Sprung-Haltung", cat:"heim", demo:"ffdrillsitz",
+     info:"Absitzen wie auf einen Stuhl und explosiv strecken – genau so startet später der Flick-Flack."},
+    {id:"ff2", name:"Handstütz-Schnepper", cat:"heim", demo:"ffdrillschnepper",
+     info:"Im Handstand die Schultern lang drücken – das gibt dir später den Abdruck aus den Händen."},
+    {id:"ff3", name:"Brücken-Kick-over", cat:"heim", demo:"ffdrillkickover",
+     info:"Rückwärts über die Hände – die halbe Flick-Flack-Bewegung, schön langsam."},
+    {id:"ff4", name:"Flick-Flack mit Spotter", cat:"verein", demo:"ff",
+     info:"Im Verein: Der Trainer führt dich durch den Sprung rückwärts."},
+    {id:"ff5", name:"Flick-Flack allein", cat:"verein", demo:"ff",
+     info:"CCVD Level 2 geschafft, wenn der Trainer ihn dir freigibt!"},
+    {id:"ff6", name:"Flick-Flack-Serien", cat:"verein", demo:"ff",
+     info:"Mehrere hintereinander – Level 3!"},
+    {id:"ff7", name:"Sprung + Flick-Flack", cat:"verein", demo:"ff",
+     info:"Aus einem Sprung direkt in den Flick-Flack verbinden."}]},
+  {id:"lnAE", name:"Aerial-Linie", ziel:"CCVD Level 3", steps:[
+    {id:"ae1", name:"Rad mit spätem Handaufsatz", cat:"heim", demo:"aerialdrillspaet",
+     info:"Radschlagen und die Hände so spät wie möglich aufsetzen – dein Absprung wird immer stärker."},
+    {id:"ae2", name:"Rad über Erhöhung", cat:"heim", demo:"aerialdrillerhoehung",
+     info:"Über ein weiches Hindernis – die Hüfte muss hoch, genau wie beim freien Rad."},
+    {id:"ae3", name:"Einbeiniger Absprung", cat:"heim", demo:"aerialdrillabsprung",
+     info:"Kraft fürs Schwungbein: kräftig von einem Bein abspringen und das Knie hochreißen."},
+    {id:"ae4", name:"Aerial mit Spotter", cat:"verein", demo:"aerial",
+     info:"Das Rad ohne Hände – der Trainer sichert dich."},
+    {id:"ae5", name:"Aerial", cat:"verein", demo:"aerial",
+     info:"Freies Rad – CCVD Level 3!"}]},
+  {id:"lnSA", name:"Salto-Linie", ziel:"CCVD Level 4–5", steps:[
+    {id:"sa1", name:"Tuck-Sprünge", cat:"heim", demo:"tuckdrillsprung",
+     info:"Hoch springen und die Knie zur Brust – das ist die Salto-Form, nur ohne Drehung."},
+    {id:"sa2", name:"Candlestick-to-Stand", cat:"heim", demo:"tuckdrillcandle",
+     info:"Vom Rücken mit Schwung aufstehen – so fühlt sich Rotation an, ganz nah am Boden."},
+    {id:"sa3", name:"Rolle von der Erhöhung", cat:"heim", demo:"rollevw",
+     info:"Abwärts rollen gibt extra Schwung – dein Körper lernt das Drehgefühl."},
+    {id:"sa4", name:"Salto mit Spotter", cat:"verein", demo:"tuck",
+     info:"Im Verein, in die Weichmatte, der Trainer dreht dich mit."},
+    {id:"sa5", name:"Standing Tuck", cat:"verein", demo:"tuck",
+     info:"Salto aus dem Stand – CCVD Level 4!"},
+    {id:"sa6", name:"Running Flip", cat:"verein", demo:"tuck",
+     info:"Salto aus dem Anlauf, z. B. nach Radwende-Flick-Flack."},
+    {id:"sa7", name:"Sprung + Flip", cat:"verein", demo:"tuck",
+     info:"Verbindung aus Sprung und Salto – Level 5."},
+    {id:"sa8", name:"Full (Salto mit 1 Twist)", cat:"verein", demo:"tuck",
+     info:"Salto mit ganzer Schraube – das Tumbling-Maximum im CCVD (Level 5)!"}]},
+  {id:"lnVB", name:"Verbindungs-Linie", ziel:"CCVD Level 2–3", steps:[
+    {id:"vb1", name:"Radwende", cat:"heim", demo:"radwende",
+     info:"Die Bewegungsumkehr: Du landest rückwärts – daran hängen später alle Rückwärts-Verbindungen."},
+    {id:"vb2", name:"Radwende + Strecksprung", cat:"heim", demo:"radkombi",
+     info:"Sofort nach der Landung abspringen – dieses Timing ist das Herz jeder Tumbling-Verbindung."},
+    {id:"vb3", name:"Radwende + Flick-Flack", cat:"verein", demo:"ff",
+     info:"Die klassische Verbindung – nur im Verein!"},
+    {id:"vb4", name:"Radwende + Flick-Flack + Tuck", cat:"verein", demo:"tuck",
+     info:"Die große Bahn – Running Tumbling wie bei den Profis."}]}
+];
+/* What each training level is about, in kid language */
+const TL_FOCUS = {
+  1:"Grundlagen: Brücke, Handstand an der Wand und ein sauberes Rad",
+  2:"Absprung-Power: Sitz-Sprung, Tuck-Sprünge und der Star",
+  3:"Rotation spüren: Candlestick und Pike-Sprung",
+  4:"Übergänge: Kick-over und einbeiniger Absprung",
+  5:"Feinschliff: Hurdler und Kombinationen"
+};
+
 const CAT_INFO = {
   heim:{label:"Zuhause", color:"var(--teal)"},
   drill:{label:"Drills zuhause", color:"#C48F00"},
@@ -300,6 +395,7 @@ try {
 } catch(e) {}
 TRACK_KEYS.forEach(k => { if(!store.progress[k]) store.progress[k] = {lvl:0, cnt:0}; });
 if(!store.levels) store.levels = {};
+if(!store.linesDone) store.linesDone = {};
 if(!store.tl){
   store.tl = 1;
   store.unit = {A:0, B:0, C:0};
@@ -308,7 +404,7 @@ if(!store.tl){
 
 let tab = "training", dayId = null, checked = {}, confirmReset = false;
 let timer = null, timerInt = null, celebrate = null, demoShown = null;
-let levelOpen = "L0", demoSkill = null, levelCelebrate = null;
+let levelOpen = "L0", demoSkill = null, levelCelebrate = null, lineOpen = null;
 
 function saveStore(){
   try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e) {}
@@ -367,9 +463,13 @@ function charArm(nx,ny,a,b,shade){
     +'" stroke="'+CH.line+'" stroke-width="1.6"/>';
 }
 function charSkirt(p){
-  const u = [Math.cos(p.t*DD), Math.sin(p.t*DD)], v = [-u[1], u[0]];
+  const u = [Math.cos(p.t*DD), Math.sin(p.t*DD)];
+  // hem direction: away from the torso, blended toward gravity so the skirt hangs
+  let hx = -u[0], hy = -u[1]+0.8;
+  const hl = Math.hypot(hx,hy)||1; hx/=hl; hy/=hl;
+  const v = [-hy, hx];
   const A = [p.px+v[0]*8, p.py+v[1]*8], B = [p.px-v[0]*8, p.py-v[1]*8];
-  const H = [p.px-u[0]*13, p.py-u[1]*13];
+  const H = [p.px+hx*13, p.py+hy*13];
   const C = [H[0]-v[0]*15, H[1]-v[1]*15], E = [H[0]+v[0]*15, H[1]+v[1]*15];
   const pts = [A,B,C,E].map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");
   return '<polygon points="'+pts+'" fill="'+CH.top+'" stroke="'+CH.line+'" stroke-width="2.4" stroke-linejoin="round"/>'
@@ -410,21 +510,34 @@ function poseSVG(p){
   const wx = p.px+u[0]*7, wy = p.py+u[1]*7;
   const so = p.flat ? 7.5 : 2; // arms attach at the shoulders, not the sternum
   const s1x = nx+v[0]*so, s1y = ny+v[1]*so, s2x = nx-v[0]*so, s2y = ny-v[1]*so;
+  let torso;
+  if(p.bow){ // bendable spine: cat hump / hollow back
+    const mx = (wx+nx)/2 + p.bow*Math.cos((p.t+90)*DD);
+    const my = (wy+ny)/2 + p.bow*Math.sin((p.t+90)*DD);
+    const dp = 'M'+wx.toFixed(1)+','+wy.toFixed(1)+' Q'+mx.toFixed(1)+','+my.toFixed(1)
+      +' '+nx.toFixed(1)+','+ny.toFixed(1);
+    torso = '<path d="'+dp+'" stroke="'+CH.line+'" stroke-width="15.6" fill="none" stroke-linecap="round"/>'
+      +'<path d="'+dp+'" stroke="'+CH.top+'" stroke-width="13" fill="none" stroke-linecap="round"/>';
+  } else {
+    torso = cap(wx,wy,nx,ny,13,CH.top);
+  }
+  torso += cap(wx-u[0]*2+v[0]*6,wy-u[1]*2+v[1]*6, wx-u[0]*2-v[0]*6,wy-u[1]*2-v[1]*6, 2.5, CH.gold);
+  const head = charHead(nx,ny,p);
   let s = '<ellipse cx="'+p.px.toFixed(1)+'" cy="139" rx="26" ry="4" fill="#E3D8EC"/>';
   s += charLeg(p.px,p.py,p.l2,p.k2,p.fs2,1,p.f2) + charArm(s2x,s2y,p.a2,p.b2,1);
-  s += cap(wx,wy,nx,ny,13,CH.top);
-  s += cap(wx-u[0]*2+v[0]*6,wy-u[1]*2+v[1]*6, wx-u[0]*2-v[0]*6,wy-u[1]*2-v[1]*6, 2.5, CH.gold);
+  s += torso;
+  if(p.headBack>=0.5) s += head; // head behind near limbs (e.g. hanging between arms)
   s += charLeg(p.px,p.py,p.l1,p.k1,p.fs1,0,p.f1);
   s += charSkirt(p);
   s += charArm(s1x,s1y,p.a1,p.b1,0);
-  s += charHead(nx,ny,p);
+  if(!(p.headBack>=0.5)) s += head;
   return s;
 }
 function KFS(list){
-  return list.map(p=>Object.assign({bow:0,hd:0,b1:0,b2:0,k1:0,k2:0,fs1:1,fs2:1,flat:0,f1:null,f2:null}, p));
+  return list.map(p=>Object.assign({bow:0,hd:0,b1:0,b2:0,k1:0,k2:0,fs1:1,fs2:1,flat:0,f1:null,f2:null,headBack:0}, p));
 }
 const easeIO = x => x<.5 ? 2*x*x : 1-Math.pow(-2*x+2,2)/2;
-const PKEYS = ["px","py","t","bow","hd","a1","b1","a2","b2","l1","k1","l2","k2","fs1","fs2","flat","f1","f2"];
+const PKEYS = ["px","py","t","bow","hd","a1","b1","a2","b2","l1","k1","l2","k2","fs1","fs2","flat","f1","f2","headBack"];
 function poseTween(d, u){
   const kf = d.kf;
   if(kf.length===1) return kf[0];
@@ -469,40 +582,49 @@ const DEMOS = {
     decor:'<circle class="ac" cx="105" cy="46" r="31" stroke-dasharray="6 8"/><path class="act" d="M136,40 l2,11 -10,-4 z"/>',
     kf:KFS([ stL(105,{a1:-90}), stL(105,{a1:0}), stL(105,{a1:90}), stL(105,{a1:180}), stL(105,{a1:270}) ])},
   katzekuh:{title:"Katze-Kuh", tips:["Rücken rund machen wie eine Katze","Dann Bauch tief, Kopf hoch wie eine Kuh","Schön langsam und ruhig atmen"],
-    dur:2600, kf:KFS([
-      {px:134,py:112,t:180,bow:24,hd:-50,a1:80,a2:90,l1:85,k1:-80,l2:93,k2:-85},
-      {px:134,py:116,t:180,bow:-16,hd:50,a1:80,a2:90,l1:85,k1:-80,l2:93,k2:-85},
-      {px:134,py:112,t:180,bow:24,hd:-50,a1:80,a2:90,l1:85,k1:-80,l2:93,k2:-85} ])},
+    dur:2800, kf:KFS([
+      {px:134,py:110,t:180,bow:22,hd:-45,a1:137,a2:145,l1:85,k1:-80,l2:93,k2:-85},
+      {px:134,py:112,t:180,bow:-16,hd:38,a1:137,a2:145,l1:85,k1:-80,l2:93,k2:-85},
+      {px:134,py:110,t:180,bow:22,hd:-45,a1:137,a2:145,l1:85,k1:-80,l2:93,k2:-85} ])},
   handgelenke:{title:"Handgelenke kreisen", tips:["Hände falten und langsam kreisen","In beide Richtungen – wichtig fürs Turnen!"],
-    decor:'<circle class="ac" cx="66" cy="66" r="13" stroke-dasharray="5 6"/><path class="act" d="M79,60 l1,10 -9,-4 z"/>',
+    decor:'<circle class="ac" cx="66" cy="63" r="13" stroke-dasharray="5 6"/>'
+      +'<g><circle cx="66" cy="50" r="3.5" fill="#D6218C"/>'
+      +'<animateTransform attributeName="transform" type="rotate" from="0 66 63" to="360 66 63" dur="1.4s" repeatCount="indefinite"/></g>',
     kf:KFS([ stL(105,{a1:168,a2:175}) ])},
   hopserlauf:{title:"Hopserlauf", tips:["Knie hoch und locker hüpfen","Arme schwingen mit"],
-    dur:900, hold:0, kf:KFS([
-      stL(110,{py:90,l1:195,k1:-105,l2:92,a1:150,a2:55}),
-      stL(110,{py:93,l1:88,l2:96,a1:100,a2:80}),
-      stL(110,{py:90,l1:88,a1:55,a2:150,l2:195,k2:-105}),
-      stL(110,{py:93,l1:88,l2:96,a1:100,a2:80}),
-      stL(110,{py:90,l1:195,k1:-105,l2:92,a1:150,a2:55}) ])},
+    dur:1900, hold:200, decor:ARR_R, kf:KFS([
+      stR(55,{py:86,l1:-20,k1:105,l2:92,a1:35,a2:145}),
+      stR(78,{py:90,l1:100,k1:-6,l2:85,a1:95,a2:85}),
+      stR(100,{py:86,l2:-20,k2:105,l1:92,a1:145,a2:35}),
+      stR(122,{py:90,l2:100,k2:-6,l1:85,a1:85,a2:95}),
+      stR(144,{py:86,l1:-20,k1:105,l2:92,a1:35,a2:145}),
+      stR(165,{py:90,l1:96,k1:-4,l2:86,a1:95,a2:85}) ])},
   baerengang:{title:"Bärengang", tips:["Hände und Füße auf den Boden, Po hoch","Wie ein Bär durchs Zimmer laufen"],
-    dur:1100, decor:ARR_R, kf:KFS([
-      {px:85,py:88,t:30,hd:-40,a1:100,a2:110,l1:83,k1:5,l2:90,k2:3,fs1:-1,fs2:-1},
-      {px:89,py:88,t:30,hd:-40,a1:112,a2:98,l1:90,k1:3,l2:80,k2:5,fs1:-1,fs2:-1},
-      {px:85,py:88,t:30,hd:-40,a1:100,a2:110,l1:83,k1:5,l2:90,k2:3,fs1:-1,fs2:-1} ])},
+    dur:2000, hold:300, decor:ARR_R, kf:KFS([
+      {px:60,py:86,t:30,bow:-8,hd:-40,a1:95,a2:62,l1:98,k1:-8,l2:80,k2:6,fs1:-1,fs2:-1},
+      {px:82,py:84,t:30,bow:-8,hd:-40,a1:80,a2:80,l1:90,k1:-2,l2:88,k2:0,fs1:-1,fs2:-1},
+      {px:104,py:86,t:30,bow:-8,hd:-40,a1:62,a2:95,l1:80,k1:6,l2:98,k2:-8,fs1:-1,fs2:-1},
+      {px:126,py:84,t:30,bow:-8,hd:-40,a1:80,a2:80,l1:90,k1:-2,l2:88,k2:0,fs1:-1,fs2:-1},
+      {px:148,py:86,t:30,bow:-8,hd:-40,a1:95,a2:62,l1:98,k1:-8,l2:80,k2:6,fs1:-1,fs2:-1} ])},
   schulterkreisen:{title:"Schulterkreisen", tips:["Schultern groß kreisen","Erst nach vorne, dann nach hinten"],
-    decor:'<circle class="ac" cx="105" cy="46" r="16" stroke-dasharray="5 6"/><path class="act" d="M121,40 l2,10 -9,-3 z"/>',
+    decor:'<circle class="ac" cx="105" cy="46" r="16" stroke-dasharray="5 6"/>'
+      +'<g><circle cx="105" cy="30" r="3.5" fill="#D6218C"/>'
+      +'<animateTransform attributeName="transform" type="rotate" from="0 105 46" to="360 105 46" dur="1.6s" repeatCount="indefinite"/></g>',
     kf:KFS([ stL(105) ])},
-  kniebeuge:{title:"Kniebeugen", tips:["Po nach hinten wie auf einen Stuhl","Rücken gerade, Arme nach vorne"],
-    dur:1800, kf:KFS([
+  kniebeuge:{title:"Kniebeugen", tips:["Po nach hinten wie auf einen Stuhl","Tief runter – Hüfte unter Kniehöhe!","Rücken gerade, Arme nach vorne"],
+    dur:2200, hold:300, kf:KFS([
       stL(110),
-      {px:116,py:104,t:-115,a1:172,a2:180,l1:142,k1:-62,l2:150,k2:-64},
+      {px:111,py:104,t:-102,hd:4,a1:152,a2:160,l1:168,k1:-72,l2:176,k2:-74},
+      {px:112,py:115,t:-96,hd:6,a1:177,a2:184,l1:190,k1:-96,l2:198,k2:-98},
+      {px:111,py:104,t:-102,hd:4,a1:152,a2:160,l1:168,k1:-72,l2:176,k2:-74},
       stL(110) ])},
   /* ---- Dehnen ---- */
   schulterwand:{title:"Schulterdehnung an der Wand", tips:["Hände an die Wand, Füße zurück","Rücken lang machen, Brust sanft Richtung Boden"],
     decor:'<line class="wl" x1="64" y1="22" x2="64" y2="138"/>',
-    kf:KFS([ {px:148,py:86,t:185,hd:-50,a1:166,a2:172,l1:88,k1:2,l2:96,k2:-2} ])},
+    kf:KFS([ {px:148,py:86,t:185,hd:-50,headBack:1,a1:166,a2:172,l1:88,k1:2,l2:96,k2:-2} ])},
   ausfallschritt:{title:"Ausfallschritt-Dehnung", tips:["Großer Schritt nach vorn","Vorderes Knie bleibt über dem Fuß","Hüfte sanft nach unten schieben"],
     decor:'<path class="ac" d="M138,100 138,116" stroke-dasharray="5 5"/><path class="act" d="M138,126 l-5,-10 10,0 z"/>',
-    kf:KFS([ {px:108,py:98,t:-90,a1:100,a2:80,l1:155,k1:-60,l2:45,k2:10} ])},
+    kf:KFS([ {px:108,py:98,t:-90,a1:100,a2:80,l1:155,k1:-62,l2:48,k2:0} ])},
   kobra:{title:"Kobra-Dehnung", tips:["Bauch bleibt fast am Boden","Arme drücken, Brust nach oben","Kopf lang zur Decke"],
     kf:KFS([ {px:128,py:132,t:-140,bow:-12,hd:-25,a1:110,a2:118,l1:5,k1:-3,l2:-4,k2:2} ])},
   schmetterling:{title:"Schmetterling-Sitz", tips:["Fußsohlen aneinander","Knie sanft Richtung Boden sinken lassen"],
@@ -521,12 +643,12 @@ const DEMOS = {
     dur:1800, decor:'<path class="ac" d="M92,124 128,124" stroke-dasharray="5 6"/><path class="act" d="M136,124 l-9,-5 0,10 z"/>',
     kf:KFS([ P_BRUECKE, Object.assign({},P_BRUECKE,{px:102,t:44,a1:70,a2:82}), P_BRUECKE ])},
   wandlaufen:{title:"Wand runterlaufen", tips:["Rücklings mit den Händen die Wand runterlaufen","Schritt für Schritt – und genauso wieder hoch!","Am besten mit einem Erwachsenen in der Nähe"],
-    dur:2200, decor:'<line class="wl" x1="184" y1="20" x2="184" y2="138"/>'
-      +'<path class="ac" d="M200,64 200,106" stroke-dasharray="6 6"/><path class="act" d="M200,54 l-5,9 10,0 z"/><path class="act" d="M200,116 l-5,-9 10,0 z"/>',
+    dur:2400, decor:'<line class="wl" x1="180" y1="20" x2="180" y2="138"/>'
+      +'<path class="ac" d="M198,64 198,106" stroke-dasharray="6 6"/><path class="act" d="M198,54 l-5,9 10,0 z"/><path class="act" d="M198,116 l-5,-9 10,0 z"/>',
     kf:KFS([
-      {px:120,py:92,t:-58,bow:-14,hd:-15,a1:-18,a2:-6,l1:94,k1:3,l2:102,k2:-3},
-      {px:126,py:96,t:-30,bow:-16,hd:-15,a1:16,a2:28,l1:98,k1:3,l2:106,k2:-3},
-      {px:120,py:92,t:-58,bow:-14,hd:-15,a1:-18,a2:-6,l1:94,k1:3,l2:102,k2:-3} ])},
+      {px:116,py:86,t:-54,bow:-16,hd:-18,a1:-12,a2:0,l1:88,k1:4,l2:95,k2:-3},
+      {px:120,py:88,t:-30,bow:-18,hd:-15,a1:28,a2:40,l1:90,k1:2,l2:97,k2:-3},
+      {px:116,py:86,t:-54,bow:-16,hd:-18,a1:-12,a2:0,l1:88,k1:4,l2:95,k2:-3} ])},
   bogengang:{title:"Bogengang rückwärts", tips:["Arme hoch, ein Bein vorne","Rückwärts über die Brücke, das Schwungbein zieht rüber","Nur mit Spotter, bis der Trainer Okay sagt!"],
     dur:3400, hold:700, times:[0,.2,.45,.7,.95], decor:ARR_R, kf:KFS([
       {px:70,py:92,t:-90,a1:-75,a2:-105,l1:125,k1:4,l2:88,k2:2},
@@ -870,6 +992,18 @@ function setTab(t){ tab=t; confirmReset=false; render(); }
 function showDemo(key, ev){ if(ev) ev.stopPropagation(); demoShown=key; demoSkill=null; render(); }
 function closeDemo(){ demoShown=null; demoSkill=null; render(); }
 function toggleLevel(id){ levelOpen = levelOpen===id ? null : id; render(); }
+function toggleLine(id){ lineOpen = lineOpen===id ? null : id; render(); }
+function toggleLineStep(id){
+  if(store.linesDone[id]) delete store.linesDone[id]; else store.linesDone[id]=true;
+  saveStore(); render();
+}
+function showLineStep(lineId, stepId, ev){
+  if(ev) ev.stopPropagation();
+  const ln = LINES.find(l=>l.id===lineId);
+  const st = ln && ln.steps.find(s=>s.id===stepId);
+  if(st){ demoShown = st.demo; demoSkill = null; render(); }
+}
+function lineCurrent(ln){ return ln.steps.find(s=>!store.linesDone[s.id]) || null; }
 function toggleSkill(id){
   if(store.levels[id]){ delete store.levels[id]; }
   else {
@@ -926,7 +1060,8 @@ function trainingHTML(){
     let h = '<div class="dayhead" style="background:#EFE7F5;box-shadow:0 4px 0 #D9CCE6;margin-bottom:12px">'
       +'<span style="font-size:26px">🏋️</span>'
       +'<div style="flex:1"><div style="font-weight:900;font-size:15px">Trainings-Level '+store.tl+(store.tl>=TL_MAX?' (Maximum!)':'')+'</div>'
-      +'<div style="font-size:12px;color:var(--sub)">Je 3× Tag A, B und C = nächstes Level</div></div></div>';
+      +'<div style="font-size:12px;color:var(--sub)">Daran arbeiten wir: '+esc(TL_FOCUS[store.tl])+'</div>'
+      +'<div style="font-size:11.5px;color:var(--sub)">Je 3× Tag A, B und C = nächstes Level</div></div></div>';
     h += '<p style="font-size:15px;font-weight:700;margin:4px 2px 10px">Such dir deinen Trainingstag aus:</p>';
     DAYS.forEach(d=>{
       const u = Math.min(store.unit[d.id]||0, TL_NEED);
@@ -1002,7 +1137,39 @@ function levelHTML(){
     +'<div style="font-size:28px">'+(rank?'🏅':'🌱')+'</div>'
     +'<div style="font-weight:900;font-size:16px">'+(rank?'Du hast '+esc(rank.name)+' geschafft!':'Dein Weg zu Level 0 beginnt!')+'</div>'
     +'<div style="font-size:13px;color:var(--sub)">'+(rank?'Weiter zum nächsten Level – Skill für Skill.':'Hak deine ersten Skills ab und hol dir dein erstes Level-Abzeichen!')+'</div></div>';
-  h += '<p style="font-size:15px;font-weight:700;margin:4px 2px 8px">Die CCVD-Level fürs Tumbling – und deine Sprünge. Hak ab, was sicher sitzt!</p>';
+  h += '<p style="font-size:15px;font-weight:700;margin:4px 2px 8px">Deine Skill-Linien – vom ersten Drill bis zum großen Skill:</p>';
+  LINES.forEach(ln=>{
+    const done = ln.steps.filter(s=>store.linesDone[s.id]).length;
+    const cur = lineCurrent(ln);
+    const open = lineOpen===ln.id;
+    const color = C.purple;
+    h += '<div class="lvlcard"><button class="lvlhead" onclick="toggleLine(\''+ln.id+'\')">'
+      +'<div style="flex:1"><div style="font-weight:900;font-size:14.5px">'+esc(ln.name)
+      +' <span class="catb" style="background:'+C.gold+';color:var(--ink)">'+esc(ln.ziel)+'</span></div>'
+      +'<div style="font-size:12px;color:var(--sub)">'+(cur ? 'Gerade dran: '+esc(cur.name) : 'Komplett! 🏅')+'</div></div>'
+      +'<span style="font-weight:900;font-size:13px">'+done+'/'+ln.steps.length+'</span>'
+      +'<span style="color:var(--sub);font-size:15px">'+(open?'▾':'▸')+'</span></button>';
+    if(open){
+      ln.steps.forEach((s2,i)=>{
+        const on = !!store.linesDone[s2.id];
+        const isCur = cur && cur.id===s2.id;
+        const ci = CAT_INFO[s2.cat==="heim"?"heim":"verein"];
+        h += '<button class="skillrow" onclick="toggleLineStep(\''+s2.id+'\')">'
+          +'<span class="circle" style="border:2.5px solid '+color+(on?';background:#4C9A5F;border-color:#4C9A5F':'')+'">'+(on?'✓':(i+1))+'</span>'
+          +'<span style="flex:1"><span class="iname" style="'+(on?'text-decoration:line-through;opacity:.6':'')+'">'
+          +(s2.cat==="verein"?'🔒 ':'')+esc(s2.name)
+          +'<span class="catb" style="background:'+ci.color+'">'+ci.label+'</span></span></span>'
+          +'<span class="demobtn" onclick="showLineStep(\''+ln.id+'\',\''+s2.id+'\',event)">👀</span></button>';
+        if(isCur){
+          h += '<div style="margin:0 14px 8px 50px;background:#FFF6DB;border-radius:12px;padding:8px 10px;font-size:12.5px;line-height:1.45">'
+            +'<b>⭐ Daran arbeitest du:</b> '+esc(s2.info)
+            +(s2.cat==="verein"?' <b>Nur im Verein!</b>':'')+'</div>';
+        }
+      });
+    }
+    h += '</div>';
+  });
+  h += '<p style="font-size:15px;font-weight:700;margin:16px 2px 8px">CCVD-Checkliste – hak ab, was sicher sitzt:</p>';
   h += '<div style="font-size:11.5px;color:var(--sub);margin:0 2px 12px;line-height:1.7">'
     +'<span class="catb" style="background:'+CAT_INFO.heim.color+'">Zuhause</span> frei üben &nbsp;'
     +'<span class="catb" style="background:'+CAT_INFO.drill.color+'">Drills zuhause</span> nur die Vorbereitung üben &nbsp;'
