@@ -129,29 +129,29 @@ button{font-family:inherit; cursor:pointer}
   text-align:left; font-weight:700; font-size:13.5px; color:var(--ink)}
 .warnbox{background:var(--goldPale); border:2px solid var(--gold); border-radius:12px;
   padding:8px 10px; font-size:12.5px; font-weight:700; margin-top:10px; color:#5A4A16}
+#splash{position:fixed; inset:0; background:var(--ink); z-index:99; display:flex;
+  flex-direction:column; align-items:center; justify-content:center; gap:22px;
+  transition:opacity .45s; overflow:hidden}
+#splash.out{opacity:0; pointer-events:none}
+#introTitle{color:var(--goldSoft); font-weight:800; font-size:34px; text-align:center}
+#introSvg{width:min(86vw,340px); background:#F7F4EC; border-radius:20px;
+  box-shadow:0 5px 0 var(--gold)}
+#introSvg .gr{stroke:#E8E2D2; stroke-width:5; stroke-linecap:round}
+#introSkip{color:#B0A890; font-weight:700; font-size:13px}
+.confetti{position:absolute; top:-14px; border-radius:2px;
+  animation:confetti-fall linear forwards}
+@keyframes confetti-fall{
+  to{transform:translateY(105vh) rotate(680deg)}
+}
 </style>
 </head>
 <body>
-<div id="splash" style="display:none; position:fixed; inset:0; background:#17141D; z-index:99;
-  flex-direction:column; align-items:center; justify-content:center">
-  <video id="splashVid" src="intro.mp4" muted playsinline
-    style="max-width:88%; max-height:72%; border-radius:22px"></video>
-  <div style="color:#D9B454; font-weight:800; font-size:14px; margin-top:16px">Tippen zum Starten</div>
+<div id="splash">
+  <div id="introTitle">⭐ Tumbling-Star</div>
+  <svg id="introSvg" viewBox="0 0 220 150"></svg>
+  <div id="introSkip">Tippen zum Überspringen</div>
 </div>
 <div id="app"></div>
-<script>
-/* Intro splash: plays intro.mp4 on app start if the file exists; tap to skip.
-   Silently removed when no video is present. */
-(function(){
-  const sp = document.getElementById("splash");
-  const v = document.getElementById("splashVid");
-  const close = ()=>{ sp.style.display="none"; v.pause(); };
-  v.addEventListener("canplay", ()=>{ sp.style.display="flex"; v.play().catch(close); }, {once:true});
-  v.addEventListener("ended", close);
-  v.addEventListener("error", close);
-  sp.addEventListener("click", close);
-})();
-</script>
 <script>
 /* ============ Daten ============ */
 const C = {gold:"#C9A227", ink:"#191621", warn:"#E2654F"};
@@ -1331,6 +1331,51 @@ function render(){
   startDemoAnim();
 }
 render();
+
+/* Intro splash: the character tumbles a full pass (cartwheel+round-off,
+   flick-flack, star jump with confetti), then the splash fades into the app.
+   Tap anywhere to skip. Reuses the demo keyframes and renderer. */
+(function(){
+  const sp = document.getElementById("splash");
+  const svg = document.getElementById("introSvg");
+  if(!sp || !svg){ return; }
+  const SEQ = [DEMOS.radkombi, DEMOS.ff, DEMOS.jumpstar];
+  const PAUSE = 260, OUTRO = 1100;
+  const total = SEQ.reduce((s,d)=>s+d.dur+PAUSE, 0);
+  let raf = null, t0 = null, confettiDone = false;
+  function confetti(){
+    const colors = ["#C9A227","#E7C463","#FFFFFF","#FFF6DB"];
+    for(let i=0;i<22;i++){
+      const c = document.createElement("div");
+      c.className = "confetti";
+      const s = 5+(i%3)*3;
+      c.style.cssText = "left:"+(3+(i*4.3)%94)+"vw;width:"+s+"px;height:"+(s*1.5)
+        +"px;background:"+colors[i%4]+";animation-duration:"+(1.5+(i%5)*.22)
+        +"s;animation-delay:"+((i%7)*.09)+"s";
+      sp.appendChild(c);
+    }
+  }
+  function close(){
+    if(raf) cancelAnimationFrame(raf);
+    sp.classList.add("out");
+    setTimeout(()=>{ sp.remove(); }, 500);
+  }
+  function tick(ts){
+    if(t0===null) t0 = ts;
+    let t = ts-t0;
+    if(t >= total+OUTRO){ close(); return; }
+    let d = SEQ[SEQ.length-1], u = 1;
+    for(const seg of SEQ){
+      if(t < seg.dur+PAUSE){ d = seg; u = Math.min(t/seg.dur, 1); break; }
+      t -= seg.dur+PAUSE;
+    }
+    if(d===SEQ[SEQ.length-1] && !confettiDone && u>=.3){ confettiDone = true; confetti(); }
+    svg.innerHTML = GROUND + poseSVG(poseTween(d, u));
+    raf = requestAnimationFrame(tick);
+  }
+  sp.addEventListener("click", close);
+  try { raf = requestAnimationFrame(tick); } catch(e){ close(); }
+})();
 </script>
 </body>
 </html>
