@@ -7,15 +7,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Tumbling-Star">
-<meta name="theme-color" content="#6C2BD9">
+<meta name="theme-color" content="#FAF8F3">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap');
 :root{
-  --bg:#FBF3F8; --ink:#2E1B3A; --sub:#7A6B8A; --magenta:#D6218C;
-  --purple:#6C2BD9; --teal:#0E9E9E; --gold:#F5B301; --orange:#F07818;
-  --card:#FFFFFF; --shadow:#E8DEF0;
+  --bg:#FAF8F3; --ink:#191621; --sub:#8A8194;
+  --gold:#C9A227; --goldSoft:#E7C463; --goldPale:#FFF6DB; --warn:#E2654F;
+  --card:#FFFFFF; --line:#E8E2D2; --shadow:#E8E2D2;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
 body{
@@ -29,19 +29,19 @@ h1{text-align:center; font-size:30px; font-weight:800; margin:4px 0 0}
 button{font-family:inherit; cursor:pointer}
 .tabs{display:flex; gap:6px; margin-bottom:14px}
 .tab{flex:1; padding:10px 2px; border-radius:14px; border:none; font-size:12.5px;
-  font-weight:800; background:#EFE7F5; color:var(--ink); box-shadow:0 3px 0 #D9CCE6;
+  font-weight:800; background:#EFECE4; color:var(--ink); box-shadow:0 3px 0 #DDD6C6;
   white-space:nowrap}
-.tab.on{background:var(--purple); color:#fff; box-shadow:0 3px 0 #4A1D99}
-.daycard{width:100%; text-align:left; border:none; border-radius:20px;
+.tab.on{background:var(--ink); color:var(--goldSoft); box-shadow:0 3px 0 var(--gold)}
+.daycard{width:100%; text-align:left; border:1.5px solid var(--line); border-radius:20px;
   padding:16px; margin-bottom:12px; display:flex; align-items:center; gap:12px}
 .daycard .em{font-size:34px}
 .daycard .nm{font-size:18px; font-weight:900; display:block}
 .daycard .in{font-size:13px; color:var(--sub)}
 .daycard .ar{margin-left:auto; font-size:22px}
-.sectitle{color:#fff; border-radius:12px; padding:8px 12px; font-weight:800;
+.sectitle{color:var(--ink); border-radius:12px; padding:8px 12px; font-weight:800;
   font-size:15px; margin:16px 0 8px}
 .item{display:flex; align-items:center; gap:10px; width:100%; text-align:left;
-  background:var(--card); border:none; border-radius:14px; padding:11px 12px;
+  background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:11px 12px;
   margin-bottom:7px; box-shadow:0 3px 0 var(--shadow)}
 .item.done{background:#F1FBF3; box-shadow:0 3px 0 #BFE3C6}
 .circle{min-width:26px; height:26px; border-radius:50%; background:#fff; color:#fff;
@@ -50,21 +50,22 @@ button{font-family:inherit; cursor:pointer}
 .iname{font-weight:800; font-size:14.5px; display:block}
 .item.done .iname{text-decoration:line-through; opacity:.6}
 .inote{font-size:12.5px; color:var(--sub)}
-.lvl{font-size:10.5px; font-weight:900; color:#fff; border-radius:999px;
+.lvl{font-size:10.5px; font-weight:900; color:var(--ink); border-radius:999px;
   padding:2px 7px; margin-left:6px; vertical-align:middle; display:inline-block}
 .timerbtn{margin-left:auto; border:none; border-radius:999px; padding:6px 12px;
-  font-weight:800; font-size:13px; color:#fff; white-space:nowrap}
+  font-weight:800; font-size:13px; color:var(--ink); white-space:nowrap}
 .bigbtn{width:100%; padding:14px; border-radius:16px; border:none; font-size:17px;
-  font-weight:800; color:#fff; margin-top:14px; background:var(--gold);
-  box-shadow:0 4px 0 #C48F00}
-.safety{background:#FFF3D6; border:2px solid var(--orange); border-radius:16px;
-  padding:12px 14px; font-size:13.5px; line-height:1.5; margin-top:16px}
+  font-weight:800; color:var(--goldSoft); margin-top:14px; background:var(--ink);
+  box-shadow:0 4px 0 var(--gold)}
+.safety{background:var(--goldPale); border:2px solid var(--gold); border-radius:16px;
+  padding:12px 14px; font-size:13.5px; line-height:1.5; margin-top:16px; color:#5A4A16}
 .back{border:none; background:none; font-weight:800; font-size:14px;
   color:var(--sub); padding:2px 0 8px}
-.dayhead{border-radius:18px; padding:12px 14px; display:flex; align-items:center; gap:10px}
-.pbar{height:10px; background:#fff; border-radius:999px; margin-top:6px; overflow:hidden}
+.dayhead{border-radius:18px; padding:12px 14px; display:flex; align-items:center; gap:10px;
+  border:1.5px solid var(--line)}
+.pbar{height:10px; background:#F2EEE3; border-radius:999px; margin-top:6px; overflow:hidden}
 .pfill{height:100%; border-radius:999px; transition:width .25s}
-.overlay{position:fixed; inset:0; background:rgba(46,27,58,.9); display:flex;
+.overlay{position:fixed; inset:0; background:rgba(25,22,33,.92); display:flex;
   flex-direction:column; align-items:center; justify-content:center; z-index:50;
   text-align:center; padding:24px}
 .ring{width:190px; height:190px; border-radius:50%; display:flex;
@@ -72,61 +73,62 @@ button{font-family:inherit; cursor:pointer}
 .ringin{width:158px; height:158px; border-radius:50%; background:var(--ink);
   color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center}
 .tnum{font-size:56px; font-weight:900}
-.card{background:var(--card); border-radius:20px; padding:14px 14px 6px;
-  box-shadow:0 4px 0 var(--shadow)}
+.card{background:var(--card); border:1.5px solid var(--line); border-radius:20px;
+  padding:14px 14px 6px; box-shadow:0 4px 0 var(--shadow)}
 .wrow{display:flex; align-items:center; margin-bottom:10px}
-.wlabel{color:#fff; border-radius:10px; padding:7px 10px; font-weight:900;
+.wlabel{color:var(--ink); border-radius:10px; padding:7px 10px; font-weight:900;
   font-size:13px; min-width:74px; text-align:center}
 .slots{display:flex; gap:8px; margin-left:10px}
-.slot{width:52px; height:46px; border-radius:12px; border:2px dashed #D9CCE6;
-  background:#FAF6FC; font-size:14px; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; line-height:1; color:#C9BBD8}
-.slot.full{border-color:transparent; background:#FFF6DB; font-size:22px; color:inherit}
+.slot{width:52px; height:46px; border-radius:12px; border:2px dashed #DDD6C6;
+  background:#F7F4EC; font-size:14px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; line-height:1; color:#C4BBA8}
+.slot.full{border-color:transparent; background:var(--goldPale); font-size:22px; color:inherit}
 .slot.full small{font-size:10px; font-weight:900; color:var(--sub)}
-.goldbox{background:#FFF6DB; border-radius:18px; padding:14px 16px; margin-top:14px;
+.goldbox{background:var(--goldPale); border-radius:18px; padding:14px 16px; margin-top:14px;
   box-shadow:0 4px 0 var(--gold); text-align:center}
-.track{background:var(--card); border-radius:14px; padding:10px 12px; margin-bottom:7px;
+.track{background:var(--card); border:1.5px solid var(--line); border-radius:14px;
+  padding:10px 12px; margin-bottom:7px;
   box-shadow:0 3px 0 var(--shadow); display:flex; align-items:center; gap:10px}
 .dots{display:flex; gap:4px; margin-top:5px; align-items:center}
-.dot{width:10px; height:10px; border-radius:50%; background:#EDE4F3; display:inline-block}
+.dot{width:10px; height:10px; border-radius:50%; background:#EDE8DC; display:inline-block}
 .dot.on{background:var(--gold)}
 .pm{border:none; border-radius:8px; width:30px; height:26px; font-weight:900;
-  background:#EFE7F5; color:var(--ink)}
+  background:#EFECE4; color:var(--ink)}
 .reset{border:none; background:none; color:var(--sub); font-size:12.5px;
   text-decoration:underline}
-.reset2{border:none; background:#E2654F; color:#fff; font-weight:800; font-size:13px;
+.reset2{border:none; background:var(--warn); color:#fff; font-weight:800; font-size:13px;
   border-radius:999px; padding:8px 16px}
 .demobtn{min-width:30px; height:30px; border-radius:50%; border:none; padding:0;
-  background:#EFE7F5; font-size:14px; display:flex; align-items:center; justify-content:center}
+  background:#EFECE4; font-size:14px; display:flex; align-items:center; justify-content:center}
 .democard{background:var(--card); border-radius:22px; padding:18px 18px 14px;
   max-width:320px; width:100%; color:var(--ink); text-align:center}
 .demotips{text-align:left; margin:8px 0 0; padding-left:20px; font-size:14px;
   line-height:1.5; font-weight:600}
 .demotips li{margin-bottom:4px}
-.demo-svg{width:100%; max-width:250px; background:#FAF6FC; border-radius:16px}
+.demo-svg{width:100%; max-width:250px; background:#F7F4EC; border-radius:16px}
 .demo-svg .st{stroke:var(--ink); stroke-width:6; fill:none; stroke-linecap:round; stroke-linejoin:round}
-.demo-svg .stf{stroke:#BEB0CC; stroke-width:6; fill:none; stroke-linecap:round; stroke-linejoin:round}
+.demo-svg .stf{stroke:#C9C2B2; stroke-width:6; fill:none; stroke-linecap:round; stroke-linejoin:round}
 .demo-svg .hd{fill:var(--ink)}
-.demo-svg .gr{stroke:#E8DEF0; stroke-width:5; stroke-linecap:round}
-.demo-svg .wl{stroke:#C9BBD8; stroke-width:8; stroke-linecap:round}
-.demo-svg .blk{fill:#E4D9EE}
-.demo-svg .ac{stroke:var(--magenta); stroke-width:4; fill:none; stroke-linecap:round}
-.demo-svg .act{fill:var(--magenta)}
-.lvlcard{background:var(--card); border-radius:16px; margin-bottom:10px;
-  box-shadow:0 3px 0 var(--shadow); overflow:hidden}
+.demo-svg .gr{stroke:#E8E2D2; stroke-width:5; stroke-linecap:round}
+.demo-svg .wl{stroke:#C4BBA8; stroke-width:8; stroke-linecap:round}
+.demo-svg .blk{fill:#EAE4D6}
+.demo-svg .ac{stroke:var(--gold); stroke-width:4; fill:none; stroke-linecap:round}
+.demo-svg .act{fill:var(--gold)}
+.lvlcard{background:var(--card); border:1.5px solid var(--line); border-radius:16px;
+  margin-bottom:10px; box-shadow:0 3px 0 var(--shadow); overflow:hidden}
 .lvlhead{display:flex; align-items:center; gap:10px; width:100%; border:none;
   background:none; padding:12px 14px; text-align:left}
-.lvlbadge{color:#fff; border-radius:10px; padding:6px 10px; font-weight:900;
+.lvlbadge{color:var(--ink); border-radius:10px; padding:6px 10px; font-weight:900;
   font-size:13px; min-width:64px; text-align:center}
 .catb{font-size:10px; font-weight:900; color:#fff; border-radius:999px; padding:2px 7px;
   margin-left:6px; display:inline-block; vertical-align:middle; white-space:nowrap}
 .skillrow{display:flex; align-items:center; gap:10px; width:100%; text-align:left;
-  background:none; border:none; padding:9px 14px; border-top:1.5px solid #F3ECF8}
+  background:none; border:none; padding:9px 14px; border-top:1.5px solid #F2EEE3}
 .drillbtn{display:flex; align-items:center; gap:8px; width:100%; border:none;
-  background:#FAF6FC; border-radius:12px; padding:9px 10px; margin-top:6px;
+  background:#F7F4EC; border-radius:12px; padding:9px 10px; margin-top:6px;
   text-align:left; font-weight:700; font-size:13.5px; color:var(--ink)}
-.warnbox{background:#FFF3D6; border:2px solid var(--orange); border-radius:12px;
-  padding:8px 10px; font-size:12.5px; font-weight:700; margin-top:10px}
+.warnbox{background:var(--goldPale); border:2px solid var(--gold); border-radius:12px;
+  padding:8px 10px; font-size:12.5px; font-weight:700; margin-top:10px; color:#5A4A16}
 </style>
 </head>
 <body>
@@ -152,7 +154,7 @@ button{font-family:inherit; cursor:pointer}
 </script>
 <script>
 /* ============ Daten ============ */
-const C = {magenta:"#D6218C", purple:"#6C2BD9", teal:"#0E9E9E", gold:"#F5B301", orange:"#F07818"};
+const C = {gold:"#C9A227", ink:"#191621", warn:"#E2654F"};
 
 const TRACKS = {
   bruecke:{label:"Brücke halten", stepAfter:2, levels:[
@@ -177,7 +179,7 @@ const TRACKS = {
 const TRACK_KEYS = Object.keys(TRACKS);
 
 const DAYS = [
-  {id:"A", name:"Brücken-Tag", emoji:"🌈", color:C.magenta, tint:"#FCE4F1", sections:[
+  {id:"A", name:"Brücken-Tag", emoji:"🌈", color:C.gold, tint:"#FFFFFF", sections:[
     {title:"Aufwärmen", items:[
       {name:"20 Hampelmänner"},
       {name:"Armkreisen groß", note:"10x vor + zurück"},
@@ -199,7 +201,7 @@ const DAYS = [
       {name:"Sitz-Sprung-Haltung", note:"3x 3 Sek halten", minTL:2},
       {name:"Brücken-Kick-over", note:"3 Versuche, mit Spotter!", minTL:4}]}
   ]},
-  {id:"B", name:"Kraft-Tag", emoji:"💪", color:C.teal, tint:"#DFF4F4", sections:[
+  {id:"B", name:"Kraft-Tag", emoji:"💪", color:C.gold, tint:"#FFFFFF", sections:[
     {title:"Aufwärmen", items:[
       {name:"Hopserlauf auf der Stelle", sec:30},
       {name:"Bärengang", note:"2x durchs Zimmer"},
@@ -218,7 +220,7 @@ const DAYS = [
       {name:"Candlestick-to-Stand", note:"5x", minTL:3},
       {name:"Einbeiniger Absprung", note:"10x pro Seite", minTL:4}]}
   ]},
-  {id:"C", name:"Technik-Tag", emoji:"🤸", color:C.purple, tint:"#EEE6FB", sections:[
+  {id:"C", name:"Technik-Tag", emoji:"🤸", color:C.gold, tint:"#FFFFFF", sections:[
     {title:"Aufwärmen", items:[
       {name:"20 Strecksprünge"},
       {name:"Toe-Touch-Vorbereitung", note:"5x locker"},
@@ -380,9 +382,9 @@ const TL_FOCUS = {
 };
 
 const CAT_INFO = {
-  heim:{label:"Zuhause", color:"var(--teal)"},
+  heim:{label:"Zuhause", color:"var(--ink)"},
   drill:{label:"Drills zuhause", color:"#C48F00"},
-  verein:{label:"Nur Verein", color:"var(--orange)"}
+  verein:{label:"Nur Verein", color:"var(--warn)"}
 };
 
 const KEY = "tumbling-star";
@@ -523,7 +525,7 @@ function poseSVG(p){
   }
   torso += cap(wx-u[0]*2+v[0]*6,wy-u[1]*2+v[1]*6, wx-u[0]*2-v[0]*6,wy-u[1]*2-v[1]*6, 2.5, CH.gold);
   const head = charHead(nx,ny,p);
-  let s = '<ellipse cx="'+p.px.toFixed(1)+'" cy="139" rx="26" ry="4" fill="#E3D8EC"/>';
+  let s = '<ellipse cx="'+p.px.toFixed(1)+'" cy="139" rx="26" ry="4" fill="#E5DFCF"/>';
   s += charLeg(p.px,p.py,p.l2,p.k2,p.fs2,1,p.f2) + charArm(s2x,s2y,p.a2,p.b2,1);
   s += torso;
   if(p.headBack>=0.5) s += head; // head behind near limbs (e.g. hanging between arms)
@@ -588,7 +590,7 @@ const DEMOS = {
       {px:134,py:110,t:180,bow:22,hd:-45,a1:137,a2:145,l1:85,k1:-80,l2:93,k2:-85} ])},
   handgelenke:{title:"Handgelenke kreisen", tips:["Hände falten und langsam kreisen","In beide Richtungen – wichtig fürs Turnen!"],
     decor:'<circle class="ac" cx="66" cy="63" r="13" stroke-dasharray="5 6"/>'
-      +'<g><circle cx="66" cy="50" r="3.5" fill="#D6218C"/>'
+      +'<g><circle cx="66" cy="50" r="3.5" fill="#C9A227"/>'
       +'<animateTransform attributeName="transform" type="rotate" from="0 66 63" to="360 66 63" dur="1.4s" repeatCount="indefinite"/></g>',
     kf:KFS([ stL(105,{a1:168,a2:175}) ])},
   hopserlauf:{title:"Hopserlauf", tips:["Knie hoch und locker hüpfen","Arme schwingen mit"],
@@ -608,7 +610,7 @@ const DEMOS = {
       {px:148,py:86,t:30,bow:-8,hd:-40,a1:95,a2:62,l1:98,k1:-8,l2:80,k2:6,fs1:-1,fs2:-1} ])},
   schulterkreisen:{title:"Schulterkreisen", tips:["Schultern groß kreisen","Erst nach vorne, dann nach hinten"],
     decor:'<circle class="ac" cx="105" cy="46" r="16" stroke-dasharray="5 6"/>'
-      +'<g><circle cx="105" cy="30" r="3.5" fill="#D6218C"/>'
+      +'<g><circle cx="105" cy="30" r="3.5" fill="#C9A227"/>'
       +'<animateTransform attributeName="transform" type="rotate" from="0 105 46" to="360 105 46" dur="1.6s" repeatCount="indefinite"/></g>',
     kf:KFS([ stL(105) ])},
   kniebeuge:{title:"Kniebeugen", tips:["Po nach hinten wie auf einen Stuhl","Tief runter – Hüfte unter Kniehöhe!","Rücken gerade, Arme nach vorne"],
@@ -1057,7 +1059,7 @@ function itemHTML(day, it, k){
 function trainingHTML(){
   const day = DAYS.find(d=>d.id===dayId);
   if(!day){
-    let h = '<div class="dayhead" style="background:#EFE7F5;box-shadow:0 4px 0 #D9CCE6;margin-bottom:12px">'
+    let h = '<div class="dayhead" style="background:var(--card);box-shadow:0 4px 0 var(--gold);margin-bottom:12px">'
       +'<span style="font-size:26px">🏋️</span>'
       +'<div style="flex:1"><div style="font-weight:900;font-size:15px">Trainings-Level '+store.tl+(store.tl>=TL_MAX?' (Maximum!)':'')+'</div>'
       +'<div style="font-size:12px;color:var(--sub)">Daran arbeiten wir: '+esc(TL_FOCUS[store.tl])+'</div>'
@@ -1070,7 +1072,7 @@ function trainingHTML(){
         +'<span class="in">'+'⭐'.repeat(u)+'☆'.repeat(TL_NEED-u)+' in diesem Level · ca. 25–30 Min</span></span>'
         +'<span class="ar" style="color:'+d.color+'">›</span></button>';
     });
-    h += '<div class="safety"><b style="color:var(--orange)">! SICHERHEIT:</b> Immer auf der Matte üben. Bogengang ohne Hilfe erst mit Trainer-Okay. Flick-Flack &amp; Salto: <b>nur im Verein!</b></div>';
+    h += '<div class="safety"><b style="color:#8A6A0E">! SICHERHEIT:</b> Immer auf der Matte üben. Bogengang ohne Hilfe erst mit Trainer-Okay. Flick-Flack &amp; Salto: <b>nur im Verein!</b></div>';
     return h;
   }
   const keys = dayKeys(day);
@@ -1131,7 +1133,7 @@ function trackerHTML(){
 }
 
 function levelHTML(){
-  const lc = {L0:C.teal, L1:C.magenta, L2:C.purple, L3:C.orange, L4:"#E2654F", L5:"#4C9A5F", J:C.gold};
+  const lc = {L0:C.gold, L1:C.gold, L2:C.gold, L3:C.gold, L4:C.gold, L5:C.gold, J:C.gold};
   const rank = currentRank();
   let h = '<div class="goldbox" style="margin:0 0 12px">'
     +'<div style="font-size:28px">'+(rank?'🏅':'🌱')+'</div>'
@@ -1142,7 +1144,7 @@ function levelHTML(){
     const done = ln.steps.filter(s=>store.linesDone[s.id]).length;
     const cur = lineCurrent(ln);
     const open = lineOpen===ln.id;
-    const color = C.purple;
+    const color = C.gold;
     h += '<div class="lvlcard"><button class="lvlhead" onclick="toggleLine(\''+ln.id+'\')">'
       +'<div style="flex:1"><div style="font-weight:900;font-size:14.5px">'+esc(ln.name)
       +' <span class="catb" style="background:'+C.gold+';color:var(--ink)">'+esc(ln.ziel)+'</span></div>'
@@ -1175,12 +1177,12 @@ function levelHTML(){
     +'<span class="catb" style="background:'+CAT_INFO.drill.color+'">Drills zuhause</span> nur die Vorbereitung üben &nbsp;'
     +'<span class="catb" style="background:'+CAT_INFO.verein.color+'">Nur Verein</span> abhaken, wenn der Trainer es bestätigt</div>';
   LEVELS.forEach(lv=>{
-    const color = lc[lv.id] || C.purple;
+    const color = lc[lv.id] || C.gold;
     const done = lv.skills.filter(s=>store.levels[s.id]).length;
     const open = levelOpen===lv.id;
     h += '<div class="lvlcard"><button class="lvlhead" onclick="toggleLevel(\''+lv.id+'\')">'
       +'<span class="lvlbadge" style="background:'+color+'">'+esc(lv.name)+'</span>'
-      +'<div style="flex:1"><div class="pbar" style="background:#F3ECF8"><div class="pfill" style="width:'+(done/lv.skills.length*100)+'%;background:'+color+'"></div></div></div>'
+      +'<div style="flex:1"><div class="pbar" style="background:#F2EEE3"><div class="pfill" style="width:'+(done/lv.skills.length*100)+'%;background:'+color+'"></div></div></div>'
       +'<span style="font-weight:900;font-size:13px">'+(done===lv.skills.length?'🏅':done+'/'+lv.skills.length)+'</span>'
       +'<span style="color:var(--sub);font-size:15px">'+(open?'▾':'▸')+'</span></button>';
     if(open){
@@ -1199,7 +1201,7 @@ function levelHTML(){
   });
   h += '<div class="lvlcard" style="padding:12px 14px;font-size:13px;color:var(--sub)">'
     +'<b style="color:var(--ink)">Level 6 &amp; 7:</b> Im Tumbling wie Level 5 – die Unterschiede liegen bei den Stunts im Verein.</div>';
-  h += '<div class="safety"><b style="color:var(--orange)">! SICHERHEIT:</b> Skills mit '
+  h += '<div class="safety"><b style="color:#8A6A0E">! SICHERHEIT:</b> Skills mit '
     +'<span class="catb" style="background:'+CAT_INFO.drill.color+'">Drills zuhause</span> oder '
     +'<span class="catb" style="background:'+CAT_INFO.verein.color+'">Nur Verein</span> lernst du ausschließlich im Verein mit Trainer – zuhause nur die gezeigten Vorbereitungs-Übungen!</div>';
   return h;
@@ -1210,11 +1212,11 @@ function zieleHTML(){
   MILESTONES.forEach(m=>{
     const on = store.milestones.includes(m.id);
     h += '<button class="item'+(on?' done':'')+'" onclick="toggleMs(\''+m.id+'\')">'
-      +'<span class="circle" style="border:2.5px solid var(--purple)">'+(on?'✓':'')+'</span>'
+      +'<span class="circle" style="border:2.5px solid var(--gold)">'+(on?'✓':'')+'</span>'
       +'<span class="iname" style="flex:1">'+esc(m.name)+'</span>'
       +(on?'<span>🏆</span>':'')+'</button>';
   });
-  h += '<div class="sectitle" style="background:var(--teal)">Deine Stufen</div>';
+  h += '<div class="sectitle" style="background:var(--gold)">Deine Stufen</div>';
   h += '<p style="font-size:12.5px;color:var(--sub);margin:0 2px 8px">Übungen steigen automatisch, wenn du sie oft genug im Training gemacht hast. Eltern können hier anpassen (+/–).</p>';
   TRACK_KEYS.forEach(t=>{
     const tr=TRACKS[t], p=store.progress[t];
@@ -1230,7 +1232,7 @@ function zieleHTML(){
       : p.cnt+'/'+tr.stepAfter+' bis zur nächsten Stufe';
     h += '<div class="track"><div style="flex:1">'
       +'<div style="font-weight:800;font-size:14px">'+esc(tr.label)
-      +' <span class="lvl" style="background:var(--teal)">Stufe '+(p.lvl+1)+'/'+tr.levels.length+'</span></div>'
+      +' <span class="lvl" style="background:var(--gold)">Stufe '+(p.lvl+1)+'/'+tr.levels.length+'</span></div>'
       +'<div style="font-size:12.5px;color:var(--sub)">Aktuell: '+cur+'</div>'
       +'<div class="dots">'+dots+'<span style="font-size:11px;color:var(--sub);margin-left:4px">'+status+'</span></div>'
       +'</div><div style="display:flex;flex-direction:column;gap:4px">'
@@ -1238,7 +1240,7 @@ function zieleHTML(){
       +'<button class="pm" onclick="adjustLvl(\''+t+'\',-1)">–</button>'
       +'</div></div>';
   });
-  h += '<div class="safety"><b style="color:var(--orange)">Denk dran:</b> „Bogengang allein" wird erst freigeschaltet, wenn das <b>Trainer-Okay</b> oben abgehakt ist. Und Flick-Flack &amp; Salto lernst du <b>nur im Verein!</b></div>';
+  h += '<div class="safety"><b style="color:#8A6A0E">Denk dran:</b> „Bogengang allein" wird erst freigeschaltet, wenn das <b>Trainer-Okay</b> oben abgehakt ist. Und Flick-Flack &amp; Salto lernst du <b>nur im Verein!</b></div>';
   return h;
 }
 
@@ -1267,8 +1269,8 @@ function overlaysHTML(){
     h += '<div class="overlay" onclick="closeLevelCelebrate()">'
       +'<div style="font-size:84px">🏅</div>'
       +'<div style="color:#fff;font-size:26px;font-weight:900;margin-top:6px">'+esc(levelCelebrate.name)+' geschafft!</div>'
-      +'<div style="color:#E7DBF3;font-size:15px;margin-top:10px;max-width:300px">Alle Skills sitzen – du bist ein Tumbling-Star! ⭐⭐⭐</div>'
-      +'<div style="color:#B9A6CC;font-size:13px;margin-top:14px">Tippen zum Weitermachen</div></div>';
+      +'<div style="color:#EFE7D8;font-size:15px;margin-top:10px;max-width:300px">Alle Skills sitzen – du bist ein Tumbling-Star! ⭐⭐⭐</div>'
+      +'<div style="color:#B0A890;font-size:13px;margin-top:14px">Tippen zum Weitermachen</div></div>';
   }
   if(timer){
     h += '<div class="overlay" id="timerOverlay" onclick="stopTimer()"></div>';
@@ -1280,7 +1282,7 @@ function overlaysHTML(){
         + celebrate.ups.map(u=>'<div style="font-size:14px;font-weight:700;margin-top:4px">'+esc(u)+'</div>').join('') + '</div>';
     }
     if(celebrate.gated.length){
-      gated = '<div style="background:#FFF3D6;color:var(--ink);border-radius:16px;padding:10px 14px;margin-top:12px;font-size:13.5px;max-width:320px">🔒 Die nächste Bogengang-Stufe wartet auf das <b>Trainer-Okay</b> (im Ziele-Tab abhaken).</div>';
+      gated = '<div style="background:var(--goldPale);color:var(--ink);border-radius:16px;padding:10px 14px;margin-top:12px;font-size:13.5px;max-width:320px">🔒 Die nächste Bogengang-Stufe wartet auf das <b>Trainer-Okay</b> (im Ziele-Tab abhaken).</div>';
     }
     const missing = DAYS.reduce((acc,d)=>acc + Math.max(0, TL_NEED-(store.unit[d.id]||0)), 0);
     const sub = celebrate.tlUp
@@ -1291,8 +1293,8 @@ function overlaysHTML(){
       +'<div style="color:#fff;font-size:26px;font-weight:900;margin-top:6px">'
       +(celebrate.tlUp?'Trainings-Level '+store.tl+' erreicht!':'Training geschafft!')+'</div>'
       + ups + gated
-      +'<div style="color:#E7DBF3;font-size:15px;margin-top:12px;max-width:300px">'+sub+'</div>'
-      +'<div style="color:#B9A6CC;font-size:13px;margin-top:14px">Tippen zum Weitermachen</div></div>';
+      +'<div style="color:#EFE7D8;font-size:15px;margin-top:12px;max-width:300px">'+sub+'</div>'
+      +'<div style="color:#B0A890;font-size:13px;margin-top:14px">Tippen zum Weitermachen</div></div>';
   }
   return h;
 }
@@ -1303,7 +1305,7 @@ function renderTimer(){
   const done = timer.left===0;
   const deg = (1 - timer.left/timer.total) * 360;
   el.innerHTML =
-    '<div class="ring" style="background:conic-gradient(var(--gold) '+deg+'deg, #55446B 0deg)">'
+    '<div class="ring" style="background:conic-gradient(var(--gold) '+deg+'deg, #3E3947 0deg)">'
     +'<div class="ringin"><div class="tnum">'+(done?'⭐':timer.left)+'</div>'
     +'<div style="font-size:14px;opacity:.8">'+(done?'Geschafft!':'Sekunden')+'</div></div></div>'
     +'<div style="color:#fff;margin-top:18px;font-size:15px;font-weight:700">'
