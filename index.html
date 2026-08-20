@@ -159,18 +159,28 @@ const C = {gold:"#C9A227", ink:"#191621", warn:"#E2654F"};
 
 const TRACKS = {
   bruecke:{label:"Brücke halten", stepAfter:2, levels:[
-    {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"}]},
+    {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"},
+    {sec:25,note:"3 Durchgänge"},{sec:30,note:"3 Durchgänge"}]},
   handstand:{label:"Handstand an der Wand", stepAfter:2, levels:[
-    {sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"},{sec:30,note:"3 Durchgänge"}]},
+    {sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"},{sec:30,note:"3 Durchgänge"},
+    {sec:40,note:"3 Durchgänge"},{sec:50,note:"3 Durchgänge"}]},
   hollow:{label:"Hollow Body (Bananenlage)", stepAfter:2, levels:[
-    {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"}]},
-  plank:{label:"Unterarmstütz (Plank)", stepAfter:2, levels:[{sec:20},{sec:30},{sec:45}]},
+    {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"},
+    {sec:25,note:"3 Durchgänge"},{sec:30,note:"3 Durchgänge"}]},
+  plank:{label:"Unterarmstütz (Plank)", stepAfter:2, levels:[
+    {sec:20},{sec:30},{sec:45},{sec:60},{sec:75}]},
   superman:{label:"Superman (Bauchlage)", stepAfter:2, levels:[
-    {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"}]},
+    {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"},
+    {sec:25,note:"3 Durchgänge"},{sec:30,note:"3 Durchgänge"}]},
   pushup:{label:"Liegestütze auf den Knien", stepAfter:2, levels:[
-    {note:"2x 6"},{note:"2x 8"},{note:"2x 10"}]},
-  spagat:{label:"Spagat üben", stepAfter:2, sides:true, levels:[{sec:20},{sec:30},{sec:40}]},
-  bogengang:{label:"Bogengang-Linie", stepAfter:3, levels:[
+    {note:"2x 6"},{note:"2x 8"},{note:"2x 10"},{note:"2x 12"},{note:"3x 10"}]},
+  /* Split progression runs on depth (pillow height), not hold time */
+  spagat:{label:"Spagat üben", stepAfter:2, sides:true, levels:[
+    {name:"Spagat mit 2 Kissen unterm Knie", sec:20},
+    {name:"Spagat mit 1 Kissen unterm Knie", sec:20},
+    {name:"Spagat ohne Kissen", sec:20},
+    {name:"Spagat ganz unten", sec:30}]},
+  bogengang:{label:"Bogengang-Linie", stepAfter:3, line:"lnBG", levels:[
     {name:"Brücke von der Erhöhung", note:"Sofa/Kasten, 5x"},
     {name:"Kick-over von der Erhöhung", note:"5 Versuche"},
     {name:"Bogengang rückwärts mit Spotter", note:"5 Versuche"},
@@ -200,7 +210,7 @@ const DAYS = [
       {name:"5x Rad – Landung stehen!", note:"Beine strecken"},
       {name:"3x Lieblingssprung", note:"Toe Touch / Tuck"},
       {name:"Sitz-Sprung-Haltung", note:"3x 3 Sek halten", minTL:2},
-      {name:"Brücken-Kick-over", note:"3 Versuche, mit Spotter!", minTL:4}]}
+      {name:"Brücken-Kick-over", note:"3 Versuche, mit Spotter!", minTL:2}]}
   ]},
   {id:"B", name:"Kraft-Tag", emoji:"💪", color:C.gold, tint:"#FFFFFF", sections:[
     {title:"Aufwärmen", items:[
@@ -210,16 +220,16 @@ const DAYS = [
       {name:"10 Kniebeugen"}]},
     {title:"Kraft", items:[
       {track:"handstand"},{track:"hollow"},{track:"pushup"},{track:"superman"},{track:"plank"}]},
-    {title:"Dehnen – lange halten!", items:[
-      {name:"Schmetterling-Sitz", sec:30},
-      {name:"Beinrückseite dehnen", sec:30, sides:true},
-      {name:"Handgelenk-Dehnung", sec:30}]},
     {title:"Abschluss", items:[
       {name:"Handstand-Versuche mit Spotter", note:"5 Versuche"},
       {name:"3x Radschlag sauber"},
       {name:"Tuck-Sprünge", note:"2x 5", minTL:2},
       {name:"Candlestick-to-Stand", note:"5x", minTL:3},
-      {name:"Einbeiniger Absprung", note:"10x pro Seite", minTL:4}]}
+      {name:"Einbeiniger Absprung", note:"10x pro Seite", minTL:4}]},
+    {title:"Dehnen – lange halten!", items:[
+      {name:"Schmetterling-Sitz", sec:30},
+      {name:"Beinrückseite dehnen", sec:30, sides:true},
+      {name:"Handgelenk-Dehnung", sec:30}]}
   ]},
   {id:"C", name:"Technik-Tag", emoji:"🤸", color:C.gold, tint:"#FFFFFF", sections:[
     {title:"Aufwärmen", items:[
@@ -234,7 +244,8 @@ const DAYS = [
       {name:"Radwende + Strecksprung", note:"3x"},
       {name:"Spreizsprung (Star)", note:"3x", minTL:2},
       {name:"Pike-Sprung", note:"3x", minTL:3},
-      {name:"Hurdler", note:"je Seite 3x", minTL:5}]},
+      {name:"Hurdler", note:"je Seite 3x", minTL:5},
+      {name:"Sprung-Kombination", note:"2 Sprünge in Folge, 3x", minTL:5}]},
     {title:"Bogengang-Drills", items:[
       {track:"bogengang"},
       {name:"Ein Bein in der Brücke heben", note:"je Bein 5x"}]},
@@ -244,12 +255,14 @@ const DAYS = [
   ]}
 ];
 
+/* check: goal is provably reached through track progress — the goals tab then
+   suggests ticking it off (a parent still confirms, nothing auto-completes). */
 const MILESTONES = [
-  {id:"m1", name:"Brücke 15 Sekunden halten"},
+  {id:"m1", name:"Brücke 15 Sekunden halten", check:()=>store.progress.bruecke.lvl>=2},
   {id:"m2", name:"Wand komplett runterlaufen"},
-  {id:"m3", name:"Handstand 20 Sek. an der Wand"},
-  {id:"m4", name:"Spagat fast ganz unten"},
-  {id:"m5", name:"Bogengang mit wenig Hilfe"},
+  {id:"m3", name:"Handstand 20 Sek. an der Wand", check:()=>store.progress.handstand.lvl>=2},
+  {id:"m4", name:"Spagat fast ganz unten", check:()=>store.progress.spagat.lvl>=3},
+  {id:"m5", name:"Bogengang mit wenig Hilfe", check:()=>store.progress.bogengang.lvl>=4},
   {id:"m6", name:"Trainer-Okay: Bogengang allein üben"}
 ];
 
@@ -376,10 +389,10 @@ const LINES = [
 /* What each training level is about, in kid language */
 const TL_FOCUS = {
   1:"Grundlagen: Brücke, Handstand an der Wand und ein sauberes Rad",
-  2:"Absprung-Power: Sitz-Sprung, Tuck-Sprünge und der Star",
+  2:"Absprung-Power: Sitz-Sprung, Tuck-Sprünge, Kick-over und der Star",
   3:"Rotation spüren: Candlestick und Pike-Sprung",
-  4:"Übergänge: Kick-over und einbeiniger Absprung",
-  5:"Feinschliff: Hurdler und Kombinationen"
+  4:"Übergänge: einbeiniger Absprung und Radwende-Verbindungen",
+  5:"Feinschliff: Hurdler und Sprung-Kombinationen"
 };
 
 const CAT_INFO = {
@@ -899,8 +912,9 @@ function startDemoAnim(){
 
 /* ============ Logik ============ */
 /* Training level scaling: plain hold timers grow +15% per level (track timers
-   progress through their own step system instead) */
-function tlSec(sec){ return Math.round(sec * (1 + 0.15*(store.tl-1)) / 5) * 5 || sec; }
+   progress through their own step system instead). Capped at 40s — these are
+   mostly stretching holds, and longer holds stop helping a child. */
+function tlSec(sec){ return Math.min(40, Math.round(sec * (1 + 0.15*(store.tl-1)) / 5) * 5 || sec); }
 function resolveItem(it){
   if(!it.track){
     const r = Object.assign({isTrack:false}, it);
@@ -943,6 +957,9 @@ function stopTimer(){ clearInterval(timerInt); timer=null; render(); }
 function restartTimer(ev){ ev.stopPropagation(); if(timer) startTimer(timer.key, timer.total); }
 
 const TL_MAX = 5, TL_NEED = 3;
+/* Steps get progressively harder to reach: early wins come fast, the last
+   steps take real training time (stepAfter + current level trainings). */
+function stepNeed(tr, p){ return tr.stepAfter + p.lvl; }
 function finishTraining(){
   const day = DAYS.find(d=>d.id===dayId);
   if(!day) return;
@@ -955,10 +972,18 @@ function finishTraining(){
     const tr=TRACKS[t], p=store.progress[t];
     if(p.lvl >= tr.levels.length-1) return;
     p.cnt++;
-    if(p.cnt >= tr.stepAfter){
+    if(p.cnt >= stepNeed(tr, p)){
       const nx = tr.levels[p.lvl+1];
       if(nx.gate && !store.milestones.includes(nx.gate)){ gated.push(tr.label); }
-      else { p.lvl++; p.cnt=0; ups.push(nx.name || (tr.label+" – Stufe "+(p.lvl+1))); }
+      else {
+        p.lvl++; p.cnt=0; ups.push(nx.name || (tr.label+" – Stufe "+(p.lvl+1)));
+        /* Mirror track progress into the matching skill line: reaching step N
+           means the home steps before it are mastered. */
+        if(tr.line){
+          const ln = LINES.find(l=>l.id===tr.line);
+          if(ln) ln.steps.slice(0, p.lvl).forEach(s=>{ if(s.cat==="heim") store.linesDone[s.id]=true; });
+        }
+      }
     }
   });
   store.unit[day.id] = (store.unit[day.id]||0) + 1;
@@ -1241,9 +1266,12 @@ function zieleHTML(){
   let h = '<p style="font-size:15px;font-weight:700;margin:4px 2px 10px">Hak ab, was du schon kannst:</p>';
   MILESTONES.forEach(m=>{
     const on = store.milestones.includes(m.id);
+    const hint = !on && m.check && m.check();
     h += '<button class="item'+(on?' done':'')+'" onclick="toggleMs(\''+m.id+'\')">'
       +'<span class="circle" style="border:2.5px solid var(--gold)">'+(on?'✓':'')+'</span>'
-      +'<span class="iname" style="flex:1">'+esc(m.name)+'</span>'
+      +'<span class="iname" style="flex:1">'+esc(m.name)
+      +(hint?' <span class="catb" style="background:var(--gold);color:var(--ink)">Im Training geschafft!</span>':'')
+      +'</span>'
       +(on?'<span>🏆</span>':'')+'</button>';
   });
   h += '<div class="sectitle" style="background:var(--gold)">Deine Stufen</div>';
@@ -1253,13 +1281,14 @@ function zieleHTML(){
     const def=tr.levels[Math.min(p.lvl,tr.levels.length-1)];
     const atMax = p.lvl>=tr.levels.length-1;
     const nextGated = !atMax && tr.levels[p.lvl+1].gate && !store.milestones.includes(tr.levels[p.lvl+1].gate);
+    const need = stepNeed(tr, p);
     let dots='';
-    for(let i=0;i<tr.stepAfter;i++) dots += '<span class="dot'+(i<p.cnt?' on':'')+'"></span>';
+    for(let i=0;i<need;i++) dots += '<span class="dot'+(i<p.cnt?' on':'')+'"></span>';
     const cur = def.name ? esc(def.name)+(def.sec?' ('+def.sec+' Sek.)':'')
       : (def.sec ? def.sec+' Sek.' : esc(def.note||''));
     const status = atMax ? 'Höchste Stufe! 🏆'
       : nextGated ? '🔒 wartet auf Trainer-Okay'
-      : p.cnt+'/'+tr.stepAfter+' bis zur nächsten Stufe';
+      : p.cnt+'/'+need+' bis zur nächsten Stufe';
     h += '<div class="track"><div style="flex:1">'
       +'<div style="font-weight:800;font-size:14px">'+esc(tr.label)
       +' <span class="lvl" style="background:var(--gold)">Stufe '+(p.lvl+1)+'/'+tr.levels.length+'</span></div>'
