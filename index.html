@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Tumbling-Star">
 <meta name="theme-color" content="#FAF8F3">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap');
@@ -1125,11 +1126,40 @@ function trackerHTML(){
       +' – dann steigen die Haltezeiten leicht und neue Übungen warten!</div>';
   }
   h += '<div style="text-align:center;margin-top:18px">'
+    +'<button class="reset" onclick="exportData()">💾 Fortschritt sichern</button>'
+    +'<span style="color:var(--sub)"> · </span>'
+    +'<button class="reset" onclick="importData()">Sicherung laden</button></div>';
+  h += '<div style="text-align:center;margin-top:10px">'
     + (confirmReset
       ? '<button class="reset2" onclick="resetAll()">Wirklich alles löschen (Level, Ziele &amp; Stufen)?</button>'
       : '<button class="reset" onclick="confirmReset=true;render()">Alles zurücksetzen</button>')
     + '</div>';
   return h;
+}
+
+/* Progress backup: localStorage does not survive a cleared browser cache,
+   so parents can save/restore the whole store as a JSON file. */
+function exportData(){
+  const blob = new Blob([JSON.stringify(store, null, 1)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "tumbling-star-"+new Date().toISOString().slice(0,10)+".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(){
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = ".json,application/json";
+  inp.onchange = () => {
+    const f = inp.files[0]; if(!f) return;
+    f.text().then(txt => {
+      const data = JSON.parse(txt);
+      if(!data || typeof data !== "object" || !Array.isArray(data.stars)) throw new Error("bad");
+      store = Object.assign({}, store, data);
+      saveStore(); render();
+    }).catch(() => alert("Diese Datei ist kein Tumbling-Star-Backup."));
+  };
+  inp.click();
 }
 
 function levelHTML(){
@@ -1331,6 +1361,11 @@ function render(){
   startDemoAnim();
 }
 render();
+
+if ("serviceWorker" in navigator &&
+    (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("sw.js");
+}
 </script>
 </body>
 </html>
