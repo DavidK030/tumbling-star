@@ -174,11 +174,15 @@ const TRACKS = {
     {sec:25,note:"3 Durchgänge"},{sec:30,note:"3 Durchgänge"}]},
   pushup:{label:"Liegestütze auf den Knien", stepAfter:2, levels:[
     {note:"2x 6"},{note:"2x 8"},{note:"2x 10"},{note:"2x 12"},{note:"3x 10"}]},
-  /* Split progression runs on depth (pillow height), not hold time */
+  /* Split progression combines both axes: longer holds build the depth,
+     then the pillow comes away and the hold starts over. */
   spagat:{label:"Spagat üben", stepAfter:2, sides:true, levels:[
     {name:"Spagat mit 2 Kissen unterm Knie", sec:20},
+    {name:"Spagat mit 2 Kissen unterm Knie", sec:30},
     {name:"Spagat mit 1 Kissen unterm Knie", sec:20},
+    {name:"Spagat mit 1 Kissen unterm Knie", sec:30},
     {name:"Spagat ohne Kissen", sec:20},
+    {name:"Spagat ohne Kissen", sec:30},
     {name:"Spagat ganz unten", sec:30}]},
   bogengang:{label:"Bogengang-Linie", stepAfter:3, line:"lnBG", levels:[
     {name:"Brücke von der Erhöhung", note:"Sofa/Kasten, 5x"},
@@ -261,7 +265,7 @@ const MILESTONES = [
   {id:"m1", name:"Brücke 15 Sekunden halten", check:()=>store.progress.bruecke.lvl>=2},
   {id:"m2", name:"Wand komplett runterlaufen"},
   {id:"m3", name:"Handstand 20 Sek. an der Wand", check:()=>store.progress.handstand.lvl>=2},
-  {id:"m4", name:"Spagat fast ganz unten", check:()=>store.progress.spagat.lvl>=3},
+  {id:"m4", name:"Spagat fast ganz unten", check:()=>store.progress.spagat.lvl>=5},
   {id:"m5", name:"Bogengang mit wenig Hilfe", check:()=>store.progress.bogengang.lvl>=4},
   {id:"m6", name:"Trainer-Okay: Bogengang allein üben"}
 ];
