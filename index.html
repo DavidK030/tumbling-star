@@ -132,6 +132,17 @@ button{font-family:inherit; cursor:pointer}
   text-align:left; font-weight:700; font-size:13.5px; color:var(--ink)}
 .warnbox{background:var(--goldPale); border:2px solid var(--gold); border-radius:12px;
   padding:8px 10px; font-size:12.5px; font-weight:700; margin-top:10px; color:#5A4A16}
+.lbl{font-size:14px; font-weight:800; margin:4px 2px 8px; color:var(--sub)}
+.seg{display:flex; gap:6px; margin:0 0 12px}
+.seg button{flex:1; border:1.5px solid var(--line); background:var(--card); color:var(--sub);
+  border-radius:12px; padding:9px 4px; font-weight:800; font-size:13px}
+.seg button.on{background:var(--ink); color:var(--goldSoft); border-color:var(--ink)}
+.extras{display:flex; gap:9px}
+.extra{flex:1; display:flex; flex-direction:column; align-items:center; gap:1px;
+  border:1.5px solid var(--line); background:var(--card); border-radius:16px; padding:11px 6px;
+  box-shadow:0 3px 0 var(--gold); color:var(--ink)}
+.extra b{font-size:13.5px}
+.extra small{font-size:11.5px; color:var(--sub)}
 .toprow{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:2px}
 .who{display:flex; align-items:center; gap:7px; border:1.5px solid var(--line);
   background:var(--card); border-radius:999px; padding:5px 12px 5px 9px; font-weight:800;
@@ -489,6 +500,7 @@ function loadSession(){
 loadSession();
 let timer = null, timerInt = null, celebrate = null, demoShown = null;
 let levelOpen = "L0", demoSkill = null, levelCelebrate = null, lineOpen = null;
+let levelView = "linien";              // "linien" | "ccvd" — level tab shows one at a time
 
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
 
@@ -1100,8 +1112,8 @@ const HELP = {
     "Wichtig: Alle drei Tage zählen. Nur Tag A neunmal zu machen bringt dich nicht weiter – dein Körper braucht Kraft, Beweglichkeit und Technik."]},
   level:{title:"Der Level-Tab", body:[
     "Das ist deine <b>Landkarte</b>: Sie zeigt, wo du gerade stehst und was als Nächstes kommt.",
-    "Oben siehst du die <b>Skill-Linien</b> – zum Beispiel die Bogengang-Linie. Jede Linie geht vom ersten kleinen Drill bis zum großen Skill. Immer eine Stufe nach der anderen.",
-    "Darunter stehen die <b>CCVD-Level</b>. Das sind die offiziellen Level im Cheerleading – Level 0 bis 5. Hak ab, was du sicher kannst.",
+    "Unter <b>„Deine Linien“</b> stehen die Skill-Linien – zum Beispiel die Bogengang-Linie. Jede Linie geht vom ersten kleinen Drill bis zum großen Skill. Immer eine Stufe nach der anderen.",
+    "Unter <b>„CCVD-Level“</b> findest du die offiziellen Level im Cheerleading – Level 0 bis 5. Hak ab, was du sicher kannst.",
     "🔒 heißt: Diesen Schritt lernst du <b>nur im Verein mit deinem Trainer</b>. Zuhause übst du die Vorbereitungs-Übungen."]},
   ziele:{title:"Der Ziele-Tab", body:[
     "Oben stehen deine <b>großen Ziele</b>. Wenn du eins schaffst, hak es ab – am besten zusammen mit Mama, Papa oder deinem Trainer.",
@@ -1358,12 +1370,11 @@ function itemHTML(day, it, k){
 function trainingHTML(){
   const day = findDay(dayId);
   if(!day){
-    let h = '<div class="dayhead" style="background:var(--card);box-shadow:0 4px 0 var(--gold);margin-bottom:12px">'
-      +'<span style="font-size:26px">🏋️</span>'
-      +'<div style="flex:1"><div style="font-weight:900;font-size:15px">Trainings-Level '+store.tl+(store.tl>=TL_MAX?' (Maximum!)':'')+'</div>'
-      +'<div style="font-size:12px;color:var(--sub)">Daran arbeiten wir: '+esc(TL_FOCUS[store.tl])+'</div>'
-      +'<div style="font-size:11.5px;color:var(--sub)">Je 3× Tag A, B und C = nächstes Level</div></div></div>';
-    h += '<p style="font-size:15px;font-weight:700;margin:4px 2px 10px">Such dir deinen Trainingstag aus:</p>';
+    let h = '<div class="dayhead" style="background:var(--card);box-shadow:0 4px 0 var(--gold);margin-bottom:14px">'
+      +'<span style="font-size:24px">🏋️</span>'
+      +'<div style="flex:1"><div style="font-weight:900;font-size:14.5px">Trainings-Level '+store.tl+(store.tl>=TL_MAX?' (Maximum!)':'')+'</div>'
+      +'<div style="font-size:12px;color:var(--sub);line-height:1.35">'+esc(TL_FOCUS[store.tl])+'</div></div></div>';
+    h += '<p class="lbl">Was turnst du heute, '+esc(activeProfile().name)+'?</p>';
     DAYS.forEach(d=>{
       const u = Math.min(store.unit[d.id]||0, TL_NEED);
       h += '<button class="daycard" style="background:'+d.tint+';box-shadow:0 4px 0 '+d.color+'" onclick="openDay(\''+d.id+'\')">'
@@ -1371,18 +1382,20 @@ function trainingHTML(){
         +'<span class="in">'+'⭐'.repeat(u)+'☆'.repeat(TL_NEED-u)+' in diesem Level · ca. 25–30 Min</span></span>'
         +'<span class="ar" style="color:'+d.color+'">›</span></button>';
     });
-    h += '<p style="font-size:15px;font-weight:700;margin:18px 2px 8px">Oder etwas Extra – jedes Mal neu zusammengestellt:</p>';
-    h += '<button class="daycard" style="background:var(--card);box-shadow:0 4px 0 var(--gold)" onclick="showPicker(\'session\')">'
-      +'<span class="em">🎲</span><span><span class="nm">Extra-Training</span>'
-      +'<span class="in">20–30 Min · du wählst den Schwerpunkt</span></span>'
-      +'<span class="ar" style="color:var(--gold)">›</span></button>';
-    h += '<button class="daycard" style="background:var(--card);box-shadow:0 4px 0 var(--gold)" onclick="showPicker(\'stretch\')">'
-      +'<span class="em">🧘</span><span><span class="nm">Nur Dehnen</span>'
-      +'<span class="in">10–15 Min · für Spagat, Brücke oder Schultern</span></span>'
-      +'<span class="ar" style="color:var(--gold)">›</span></button>';
-    if(store.extra) h += '<div style="font-size:12.5px;color:var(--sub);text-align:center;margin-top:8px">'
+    /* Kept visually smaller than the three days: those are the plan, these are
+       the side dish. Five identical cards made both look equally important. */
+    h += '<p class="lbl" style="margin-top:16px">Lust auf mehr?</p>';
+    h += '<div class="extras">'
+      +'<button class="extra" onclick="showPicker(\'session\')">'
+      +'<span style="font-size:26px">🎲</span><b>Extra-Training</b><small>20–30 Min</small></button>'
+      +'<button class="extra" onclick="showPicker(\'stretch\')">'
+      +'<span style="font-size:26px">🧘</span><b>Nur Dehnen</b><small>10–15 Min</small></button>'
+      +'</div>';
+    if(store.extra) h += '<div style="font-size:12px;color:var(--sub);text-align:center;margin-top:7px">'
       +'Schon '+store.extra+' Extra-Training'+(store.extra===1?'':'s')+' gemacht 💪</div>';
-    h += '<div class="safety"><b style="color:#8A6A0E">! SICHERHEIT:</b> Immer auf der Matte üben. Bogengang ohne Hilfe erst mit Trainer-Okay. Flick-Flack &amp; Salto: <b>nur im Verein!</b></div>';
+    h += '<div class="safety" style="font-size:12.5px;padding:10px 12px">'
+      +'<b style="color:#8A6A0E">! SICHERHEIT:</b> Immer auf der Matte. '
+      +'Flick-Flack &amp; Salto <b>nur im Verein</b>, Bogengang allein erst mit Trainer-Okay.</div>';
     return h;
   }
   const keys = dayKeys(day);
@@ -1492,7 +1505,14 @@ function levelHTML(){
     +'<div style="font-size:28px">'+(rank?'🏅':'🌱')+'</div>'
     +'<div style="font-weight:900;font-size:16px">'+(rank?'Du hast '+esc(rank.name)+' geschafft!':'Dein Weg zu Level 0 beginnt!')+'</div>'
     +'<div style="font-size:13px;color:var(--sub)">'+(rank?'Weiter zum nächsten Level – Skill für Skill.':'Hak deine ersten Skills ab und hol dir dein erstes Level-Abzeichen!')+'</div></div>';
-  h += '<p style="font-size:15px;font-weight:700;margin:4px 2px 8px">Deine Skill-Linien – vom ersten Drill bis zum großen Skill:</p>';
+  /* Two separate things used to sit on top of each other here: the child's own
+     path (skill lines) and the official CCVD checklist. One at a time. */
+  h += '<div class="seg">'
+    + '<button class="'+(levelView==="linien"?"on":"")+'" onclick="setLevelView(\'linien\')">🤸 Deine Linien</button>'
+    + '<button class="'+(levelView==="ccvd"?"on":"")+'" onclick="setLevelView(\'ccvd\')">📋 CCVD-Level</button></div>';
+
+  if(levelView === "linien"){
+  h += '<p class="lbl">Vom ersten Drill bis zum großen Skill:</p>';
   LINES.forEach(ln=>{
     const done = ln.steps.filter(s=>store.linesDone[s.id]).length;
     const cur = lineCurrent(ln);
@@ -1524,11 +1544,12 @@ function levelHTML(){
     }
     h += '</div>';
   });
-  h += '<p style="font-size:15px;font-weight:700;margin:16px 2px 8px">CCVD-Checkliste – hak ab, was sicher sitzt:</p>';
-  h += '<div style="font-size:11.5px;color:var(--sub);margin:0 2px 12px;line-height:1.7">'
-    +'<span class="catb" style="background:'+CAT_INFO.heim.color+'">Zuhause</span> frei üben &nbsp;'
-    +'<span class="catb" style="background:'+CAT_INFO.drill.color+'">Drills zuhause</span> nur die Vorbereitung üben &nbsp;'
-    +'<span class="catb" style="background:'+CAT_INFO.verein.color+'">Nur Verein</span> abhaken, wenn der Trainer es bestätigt</div>';
+    return h + '<div class="safety" style="font-size:12.5px;padding:10px 12px">'
+      +'<b style="color:#8A6A0E">! SICHERHEIT:</b> Schritte mit 🔒 lernst du '
+      +'<b>nur im Verein mit Trainer</b> – zuhause übst du die Vorbereitungs-Drills.</div>';
+  }
+
+  h += '<p class="lbl">Hak ab, was sicher sitzt:</p>';
   LEVELS.forEach(lv=>{
     const color = lc[lv.id] || C.gold;
     const done = lv.skills.filter(s=>store.levels[s.id]).length;
@@ -1554,11 +1575,14 @@ function levelHTML(){
   });
   h += '<div class="lvlcard" style="padding:12px 14px;font-size:13px;color:var(--sub)">'
     +'<b style="color:var(--ink)">Level 6 &amp; 7:</b> Im Tumbling wie Level 5 – die Unterschiede liegen bei den Stunts im Verein.</div>';
-  h += '<div class="safety"><b style="color:#8A6A0E">! SICHERHEIT:</b> Skills mit '
-    +'<span class="catb" style="background:'+CAT_INFO.drill.color+'">Drills zuhause</span> oder '
-    +'<span class="catb" style="background:'+CAT_INFO.verein.color+'">Nur Verein</span> lernst du ausschließlich im Verein mit Trainer – zuhause nur die gezeigten Vorbereitungs-Übungen!</div>';
+  h += '<div class="safety" style="font-size:12.5px;padding:10px 12px">'
+    +'<b style="color:#8A6A0E">! SICHERHEIT:</b> '
+    +'<span class="catb" style="background:'+CAT_INFO.drill.color+'">Drills zuhause</span> und '
+    +'<span class="catb" style="background:'+CAT_INFO.verein.color+'">Nur Verein</span> '
+    +'lernst du ausschließlich im Verein – zuhause nur die Vorbereitungs-Übungen.</div>';
   return h;
 }
+function setLevelView(v){ levelView = v; render(); }
 
 function zieleHTML(){
   let h = '<p style="font-size:15px;font-weight:700;margin:4px 2px 10px">Hak ab, was du schon kannst:</p>';
