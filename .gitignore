@@ -1,0 +1,4 @@
+# Exercise clips stay out of the public repo by default: they show a child.
+# Decide deliberately before publishing any of them (see videos/README note).
+videos/*.mp4
+videos/*.mov

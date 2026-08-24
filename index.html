@@ -107,6 +107,8 @@ button{font-family:inherit; cursor:pointer}
   line-height:1.5; font-weight:600}
 .demotips li{margin-bottom:4px}
 .demo-svg{width:100%; max-width:250px; background:#F7F4EC; border-radius:16px}
+.demo-vid{width:100%; max-width:250px; background:#F7F4EC; border-radius:16px; display:block;
+  margin:0 auto; aspect-ratio:22/15; object-fit:cover}
 .demo-svg .st{stroke:var(--ink); stroke-width:6; fill:none; stroke-linecap:round; stroke-linejoin:round}
 .demo-svg .stf{stroke:#C9C2B2; stroke-width:6; fill:none; stroke-linecap:round; stroke-linejoin:round}
 .demo-svg .hd{fill:var(--ink)}
@@ -585,6 +587,11 @@ const P_SIT = {px:78,py:102,t:-108,a1:35,a2:45,l1:150,k1:-62,l2:158,k2:-64}; // 
 const P_HANDSTAND_W = {px:156,py:58,t:95,a1:86,a2:96,l1:-70,k1:-8,l2:-78,k2:-6,hd:-6};
 const P_TUCKBALL_R = {px:118,py:110,t:172,bow:20,hd:-45,a1:95,b1:-70,a2:105,b2:-60,
   l1:150,k1:-115,l2:160,k2:-115,fs1:-1,fs2:-1}; // rolled ball, travelling right
+
+/* Filmed exercise clips. A key listed here plays videos/<key>.mp4 instead of
+   the vector figure — add keys as clips are recorded, the rest keep the
+   drawn animation, so both can coexist while filming is in progress. */
+const HAS_VIDEO = new Set([]);
 
 const DEMOS = {
   /* ---- Aufwärmen ---- */
@@ -1319,7 +1326,9 @@ function overlaysHTML(){
         '<button class="drillbtn" onclick="showDemo(\''+dr.demo+'\',event)">👀 '+esc(dr.name)+'</button>').join('');
     }
     h += '<div class="overlay" onclick="closeDemo()"><div class="democard">'
-      + '<svg id="demoAnim" class="demo-svg" viewBox="0 0 220 150"></svg>'
+      + (HAS_VIDEO.has(demoShown)
+        ? '<video class="demo-vid" src="videos/'+demoShown+'.mp4" autoplay loop muted playsinline></video>'
+        : '<svg id="demoAnim" class="demo-svg" viewBox="0 0 220 150"></svg>')
       + '<div style="font-weight:900;font-size:18px;margin-top:8px">'+esc(d.title)+'</div>'
       + '<ul class="demotips">'+d.tips.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>'
       + extra
