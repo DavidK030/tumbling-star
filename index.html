@@ -1063,35 +1063,95 @@ function toggleItem(k){
   render();
 }
 
+/* Hands-free timer. You cannot tap a phone while holding a split, so the timer
+   counts you in, announces the side change and finishes on its own. Beeps are
+   generated, not loaded, so they also work offline. */
+const T_READY = 5, T_SWITCH = 10;
+let actx = null;
+function initAudio(){                      // must run inside a tap to unlock iOS audio
+  try {
+    if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if(actx.state === "suspended") actx.resume();
+  } catch(e) {}
+}
+function beep(freq, dur, delay){
+  if(!actx) return;
+  try {
+    const t = actx.currentTime + (delay||0);
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.35, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + dur + 0.03);
+  } catch(e) {}
+}
+function buzz(pattern){ try { navigator.vibrate && navigator.vibrate(pattern); } catch(e) {} }
+const SOUND = {
+  tick:  ()=>  beep(880, .06),
+  go:    ()=>{ beep(1050, .18); buzz(120); },
+  swap:  ()=>{ beep(560, .3); beep(760, .3, .34); buzz([160,90,160]); },
+  done:  ()=>{ beep(880, .14); beep(1170, .14, .15); beep(1400, .34, .3); buzz([200,100,300]); }
+};
+
+let wakeLock = null;
+async function keepAwake(on){              // stop the screen locking mid-hold
+  try {
+    if(on && !wakeLock && navigator.wakeLock){
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", ()=>{ wakeLock = null; });
+    } else if(!on && wakeLock){ await wakeLock.release(); wakeLock = null; }
+  } catch(e) {}
+}
+
+function phaseEnd(sec){ return Date.now() + sec*1000; }
 function startTimer(k, sec, ev, sides){
   if(ev) ev.stopPropagation();
   clearInterval(timerInt);
-  timer = {key:k, total:sec, left:sec, sides:!!sides, side:1};
+  initAudio(); keepAwake(true);
+  timer = {key:k, total:sec, sides:!!sides, side:1, phase:"ready",
+           endsAt: phaseEnd(T_READY), left:T_READY, lastTick:null};
   runTimer();
   render();
 }
-/* "je Seite" exercises only count as done after the second side, otherwise
-   the tick appears after side one and the other leg gets skipped. */
+/* Driven by wall-clock rather than by counting ticks: browsers throttle timers
+   in the background, and a stretch hold has to stay honest. */
 function runTimer(){
   clearInterval(timerInt);
   timerInt = setInterval(()=>{
     if(!timer) return;
-    timer.left--;
-    if(timer.left<=0){
-      timer.left = 0;
-      clearInterval(timerInt);
-      if(!(timer.sides && timer.side===1)){ checked[timer.key]=true; saveSession(); }
+    const left = Math.max(0, Math.ceil((timer.endsAt - Date.now())/1000));
+    if(left !== timer.left){
+      timer.left = left;
+      if(left > 0 && left <= 3 && timer.lastTick !== left){ timer.lastTick = left; SOUND.tick(); }
+      if(left === 0) nextPhase();
+      renderTimer();
     }
-    renderTimer();
-  },1000);
+  }, 200);
 }
-function stopTimer(){ clearInterval(timerInt); timer=null; render(); }
+function nextPhase(){
+  timer.lastTick = null;
+  if(timer.phase === "ready" || timer.phase === "switch"){
+    timer.phase = "run"; timer.endsAt = phaseEnd(timer.total); timer.left = timer.total;
+    SOUND.go();
+  } else if(timer.sides && timer.side === 1){
+    timer.phase = "switch"; timer.side = 2;
+    timer.endsAt = phaseEnd(T_SWITCH); timer.left = T_SWITCH;
+    SOUND.swap();
+  } else {
+    timer.phase = "done";
+    clearInterval(timerInt); keepAwake(false);
+    checked[timer.key] = true; saveSession();
+    SOUND.done();
+  }
+}
+function stopTimer(){ clearInterval(timerInt); keepAwake(false); timer=null; render(); }
 function restartTimer(ev){ ev.stopPropagation(); if(timer) startTimer(timer.key, timer.total, null, timer.sides); }
-function otherSide(ev){
+function addTime(ev){                      // more time to get into position
   ev.stopPropagation();
-  if(!timer) return;
-  timer.side = 2; timer.left = timer.total;
-  runTimer(); renderTimer();
+  if(!timer || timer.phase === "done") return;
+  timer.endsAt += 10000; timer.lastTick = null; renderTimer();
 }
 
 const TL_MAX = 5, TL_NEED = 3;
@@ -1714,23 +1774,25 @@ function overlaysHTML(){
 function renderTimer(){
   const el = document.getElementById("timerOverlay");
   if(!el || !timer) return;
-  const done = timer.left===0;
-  const half = done && timer.sides && timer.side===1; // side one finished, side two still to go
-  const deg = (1 - timer.left/timer.total) * 360;
+  const p = timer.phase;
+  const span = p==="ready" ? T_READY : p==="switch" ? T_SWITCH : timer.total;
+  const deg = p==="done" ? 360 : (1 - timer.left/span) * 360;
+  const sideNote = timer.sides ? ' · '+timer.side+'. Seite' : '';
+  const face = {
+    ready:  {num:timer.left, sub:"Fertig machen…", msg:"Geh in die Position", ring:"#8A8194"},
+    run:    {num:timer.left, sub:"Sekunden"+sideNote, msg:"Halten … du schaffst das!", ring:"var(--gold)"},
+    switch: {num:timer.left, sub:"Seite wechseln", msg:"Jetzt die andere Seite!", ring:"#E7C463"},
+    done:   {num:"⭐",       sub:"Geschafft!",      msg:"Tippen zum Schließen", ring:"var(--gold)"}
+  }[p];
   const btn = (label, fn) => '<button onclick="'+fn+'(event)" style="margin-top:14px;border:none;'
     +'border-radius:999px;padding:10px 18px;font-weight:800;font-size:14px;'
     +'background:var(--gold);color:var(--ink)">'+label+'</button>';
   el.innerHTML =
-    '<div class="ring" style="background:conic-gradient(var(--gold) '+deg+'deg, #3E3947 0deg)">'
-    +'<div class="ringin"><div class="tnum">'+(done?(half?'½':'⭐'):timer.left)+'</div>'
-    +'<div style="font-size:14px;opacity:.8">'
-    +(done?(half?'Eine Seite!':'Geschafft!'):(timer.sides?'Sek. · '+timer.side+'. Seite':'Sekunden'))
-    +'</div></div></div>'
-    +'<div style="color:#fff;margin-top:18px;font-size:15px;font-weight:700">'
-    +(done ? (half?'Jetzt die andere Seite!':'Tippen zum Schließen')
-           : 'Halten … du schaffst das!')+'</div>'
-    +(half ? btn('➡️ Andere Seite', 'otherSide')
-      : done ? btn('🔁 Nochmal', 'restartTimer') : '');
+    '<div class="ring" style="background:conic-gradient('+face.ring+' '+deg+'deg, #3E3947 0deg)">'
+    +'<div class="ringin"><div class="tnum">'+face.num+'</div>'
+    +'<div style="font-size:14px;opacity:.8">'+face.sub+'</div></div></div>'
+    +'<div style="color:#fff;margin-top:18px;font-size:15px;font-weight:700">'+face.msg+'</div>'
+    + (p==="done" ? btn('🔁 Nochmal', 'restartTimer') : btn('+10 Sek.', 'addTime'));
 }
 
 function saveName(){
