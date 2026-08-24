@@ -132,9 +132,15 @@ button{font-family:inherit; cursor:pointer}
   text-align:left; font-weight:700; font-size:13.5px; color:var(--ink)}
 .warnbox{background:var(--goldPale); border:2px solid var(--gold); border-radius:12px;
   padding:8px 10px; font-size:12.5px; font-weight:700; margin-top:10px; color:#5A4A16}
-.who{display:flex; align-items:center; gap:7px; margin:0 0 2px auto; border:1.5px solid var(--line);
+.toprow{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:2px}
+.who{display:flex; align-items:center; gap:7px; border:1.5px solid var(--line);
   background:var(--card); border-radius:999px; padding:5px 12px 5px 9px; font-weight:800;
   font-size:13.5px; color:var(--ink); box-shadow:0 2px 0 var(--shadow)}
+.helpcard{background:var(--card); border-radius:22px; padding:18px; max-width:340px; width:100%;
+  color:var(--ink); text-align:left; max-height:78vh; overflow-y:auto}
+.helpcard h3{margin:0 0 10px; font-size:19px}
+.helpcard p{font-size:14px; line-height:1.5; margin:0 0 11px}
+.helpcard p b{color:var(--ink)}
 .pcard{background:var(--card); border-radius:22px; padding:16px; max-width:320px; width:100%;
   color:var(--ink); text-align:left}
 .prow{display:flex; align-items:center; gap:10px; width:100%; text-align:left; border:1.5px solid var(--line);
@@ -1071,6 +1077,45 @@ function otherSide(ev){
 }
 
 const TL_MAX = 5, TL_NEED = 3;
+
+/* Per-tab help. Written for a child reading alone, but detailed enough that a
+   parent understands what the training is built on. */
+const HELP = {
+  training:{title:"Der Trainings-Tab", body:[
+    "Hier turnst du. Such dir einen Trainingstag aus – <b>A, B oder C</b> – und arbeite die Liste von oben nach unten ab.",
+    "Jede Übung tippst du an, wenn du sie geschafft hast. Bei manchen läuft ein <b>Timer</b> – halte durch, bis der Stern kommt!",
+    "Steht <b>„je Seite!“</b> dabei, machst du die Übung zweimal: einmal links, einmal rechts. Der Timer sagt dir Bescheid.",
+    "Das Auge 👀 zeigt dir, wie die Übung aussieht.",
+    "Ganz unten drückst du <b>„Training fertig“</b> – dann bekommst du deinen Stern."]},
+  tracker:{title:"Der Sterne-Tab", body:[
+    "Für jedes fertige Training bekommst du einen <b>Stern</b>.",
+    "Sammle <b>je 3 Sterne</b> für Tag A, Tag B und Tag C – dann steigst du ein <b>Trainings-Level</b> auf. Es gibt 5 Level.",
+    "Bei jedem neuen Level werden ein paar Übungen etwas länger und <b>neue Übungen kommen dazu</b>.",
+    "Wichtig: Alle drei Tage zählen. Nur Tag A neunmal zu machen bringt dich nicht weiter – dein Körper braucht Kraft, Beweglichkeit und Technik."]},
+  level:{title:"Der Level-Tab", body:[
+    "Das ist deine <b>Landkarte</b>: Sie zeigt, wo du gerade stehst und was als Nächstes kommt.",
+    "Oben siehst du die <b>Skill-Linien</b> – zum Beispiel die Bogengang-Linie. Jede Linie geht vom ersten kleinen Drill bis zum großen Skill. Immer eine Stufe nach der anderen.",
+    "Darunter stehen die <b>CCVD-Level</b>. Das sind die offiziellen Level im Cheerleading – Level 0 bis 5. Hak ab, was du sicher kannst.",
+    "🔒 heißt: Diesen Schritt lernst du <b>nur im Verein mit deinem Trainer</b>. Zuhause übst du die Vorbereitungs-Übungen."]},
+  ziele:{title:"Der Ziele-Tab", body:[
+    "Oben stehen deine <b>großen Ziele</b>. Wenn du eins schaffst, hak es ab – am besten zusammen mit Mama, Papa oder deinem Trainer.",
+    "Steht <b>„Im Training geschafft!“</b> daneben, hast du das laut deinen Übungsstufen schon erreicht – schau nach, ob es wirklich sitzt.",
+    "Darunter siehst du deine <b>Übungsstufen</b>. Die steigen ganz von allein, wenn du eine Übung oft genug im Training gemacht hast.",
+    "Die Punkte zeigen, wie oft du eine Übung noch machen musst. Je höher die Stufe, desto mehr Trainings brauchst du – wie im echten Sport.",
+    "Eltern können mit <b>+</b> und <b>–</b> nachhelfen, wenn eine Stufe zu leicht oder zu schwer ist."]}
+};
+const CONCEPT = {title:"So ist dein Training aufgebaut", body:[
+  "<b>Drei Trainingstage</b><br>Tag A ist der Brücken-Tag (Beweglichkeit), Tag B der Kraft-Tag, Tag C der Technik-Tag. Jeder dauert 25–30 Minuten. Am besten zweimal die Woche turnen, mit einem Ruhetag dazwischen.",
+  "<b>Warum drei verschiedene Tage?</b><br>Ein Bogengang braucht alles gleichzeitig: eine bewegliche Brücke, Kraft in Armen und Rumpf, und saubere Technik. Wer nur das Lieblingsthema übt, bleibt genau an dem Punkt stecken, den er auslässt.",
+  "<b>Zwei Fortschritte laufen parallel</b><br>Deine <b>Übungsstufen</b> steigen automatisch, wenn du eine Übung oft genug gemacht hast – aus 10 Sekunden Brücke werden mit der Zeit 30. Dein <b>Trainings-Level</b> steigt, wenn du je 3 Sterne auf allen drei Tagen hast – dann kommen neue Übungen dazu.",
+  "<b>Warum es später langsamer geht</b><br>Die ersten Stufen erreichst du schnell, die späteren brauchen mehr Trainings. Das ist Absicht: Beweglichkeit und Kraft wachsen über Monate, nicht über Wochen. Eine App, die dich in drei Wochen durchwinkt, hat dir nichts beigebracht.",
+  "<b>Skill-Linien</b><br>Große Skills wie Bogengang, Flick-Flack oder Salto lernst du nicht am Stück, sondern über eine Kette kleiner Schritte. Genau diese Ketten stehen im Level-Tab – du siehst immer, woran du gerade bist und was der nächste Schritt ist.",
+  "<b>Was zuhause geht und was nicht</b><br>Zuhause übst du Beweglichkeit, Kraft und die Vorbereitungs-Drills. Alles, wo du über den Kopf rotierst – Flick-Flack, Salto, freies Rad – lernst du <b>ausschließlich im Verein mit Trainer und Matte</b>. Die App hakt diese Schritte erst ab, wenn dein Trainer das Okay gibt.",
+  "<b>CCVD-Level</b><br>Die Level 0 bis 5 im Level-Tab sind die offiziellen Tumbling-Level im deutschen Cheerleading-Verband. So siehst du, wo du im Vergleich zum Wettkampf stehst."]};
+
+let helpShown = null;
+function showHelp(key){ helpShown = key; render(); }
+function closeHelp(){ helpShown = null; render(); }
 /* Steps get progressively harder to reach: early wins come fast, the last
    steps take real training time (stepAfter + current level trainings). */
 function stepNeed(tr, p){ return tr.stepAfter + p.lvl; }
@@ -1275,6 +1320,9 @@ function trackerHTML(){
     +'<span style="color:var(--sub)"> · </span>'
     +'<button class="reset" onclick="importData()">Sicherung laden</button></div>';
   h += '<div style="text-align:center;margin-top:10px">'
+    +'<button class="reset" onclick="'+(profiles.length>1?'toggleProfileMenu()':'addProfile()')+'">'
+    +(profiles.length>1 ? '👥 Turner wechseln' : '👥 Noch ein Kind übt mit')+'</button></div>';
+  h += '<div style="text-align:center;margin-top:10px">'
     + (confirmReset
       ? '<button class="reset2" onclick="resetAll()">Wirklich alles löschen (Level, Ziele &amp; Stufen)?</button>'
       : '<button class="reset" onclick="confirmReset=true;render()">Alles zurücksetzen</button>')
@@ -1435,6 +1483,18 @@ function zieleHTML(){
 
 function overlaysHTML(){
   let h='';
+  if(helpShown){
+    const d = helpShown==="concept" ? CONCEPT : (HELP[helpShown] || HELP.training);
+    h += '<div class="overlay" onclick="closeHelp()"><div class="helpcard" onclick="event.stopPropagation()">'
+      + '<h3>'+d.title+'</h3>'
+      + d.body.map(t=>'<p>'+t+'</p>').join('')
+      + (helpShown==="concept" ? ''
+        : '<button class="bigbtn" style="margin-top:4px" onclick="showHelp(\'concept\')">'
+          + '📖 So ist das Training aufgebaut</button>')
+      + '<div style="text-align:center;margin-top:12px">'
+      + '<button class="reset" onclick="closeHelp()">Schließen</button></div>'
+      + '</div></div>';
+  }
   if(profileMenu){
     h += '<div class="overlay" onclick="toggleProfileMenu()"><div class="pcard" onclick="event.stopPropagation()">'
       + '<div style="font-weight:900;font-size:18px;margin-bottom:10px">Wer turnt gerade?</div>';
@@ -1531,9 +1591,15 @@ function renderTimer(){
 function render(){
   const app = document.getElementById("app");
   const me = activeProfile();
-  let h = '<button class="who" onclick="toggleProfileMenu()">'
-    + '<span style="font-size:19px">'+me.emoji+'</span>'
-    + '<span>'+esc(me.name)+'</span><span style="color:var(--sub)">▾</span></button>';
+  /* One child on their own phone never needs a profile switcher, so it only
+     shows up once a second profile exists (shared tablet, siblings). */
+  let h = '<div class="toprow">'
+    + (profiles.length > 1
+      ? '<button class="who" onclick="toggleProfileMenu()">'
+        + '<span style="font-size:19px">'+me.emoji+'</span>'
+        + '<span>'+esc(me.name)+'</span><span style="color:var(--sub)">▾</span></button>'
+      : '<span></span>')
+    + '<button class="who" onclick="showHelp(tab)" aria-label="Hilfe">? Hilfe</button></div>';
   h += '<h1>⭐ Tumbling-Star</h1><p class="sub">Dein Weg zum Bogengang – Stufe für Stufe</p>';
   h += '<div class="tabs">'
     +'<button class="tab'+(tab==="training"?' on':'')+'" onclick="setTab(\'training\')">🏋️ Training</button>'
