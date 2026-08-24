@@ -135,26 +135,7 @@ button{font-family:inherit; cursor:pointer}
 </style>
 </head>
 <body>
-<div id="splash" style="display:none; position:fixed; inset:0; background:#17141D; z-index:99;
-  flex-direction:column; align-items:center; justify-content:center">
-  <video id="splashVid" src="intro.mp4" muted playsinline
-    style="max-width:88%; max-height:72%; border-radius:22px"></video>
-  <div style="color:#D9B454; font-weight:800; font-size:14px; margin-top:16px">Tippen zum Starten</div>
-</div>
 <div id="app"></div>
-<script>
-/* Intro splash: plays intro.mp4 on app start if the file exists; tap to skip.
-   Silently removed when no video is present. */
-(function(){
-  const sp = document.getElementById("splash");
-  const v = document.getElementById("splashVid");
-  const close = ()=>{ sp.style.display="none"; v.pause(); };
-  v.addEventListener("canplay", ()=>{ sp.style.display="flex"; v.play().catch(close); }, {once:true});
-  v.addEventListener("ended", close);
-  v.addEventListener("error", close);
-  sp.addEventListener("click", close);
-})();
-</script>
 <script>
 /* ============ Daten ============ */
 const C = {gold:"#C9A227", ink:"#191621", warn:"#E2654F"};
