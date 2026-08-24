@@ -423,6 +423,28 @@ if(!store.tl){
 }
 
 let tab = "training", dayId = null, checked = {}, confirmReset = false;
+
+/* A training run takes 25-30 minutes and phones drop the page all the time
+   (lock screen, a call, low memory). Without this the child loses every tick
+   and has to start over, so the running session survives a reload for 6h. */
+const SKEY = "tumbling-star-session";
+function checkedDay(){
+  const on = Object.keys(checked).filter(k=>checked[k]);
+  return on.length ? on[0].split("-")[0] : null; // item keys are "<day>-<section>-<index>"
+}
+function saveSession(){
+  try {
+    const d = checkedDay();
+    if(d) localStorage.setItem(SKEY, JSON.stringify({dayId:d, checked, t:Date.now()}));
+    else localStorage.removeItem(SKEY);
+  } catch(e) {}
+}
+try {
+  const s = JSON.parse(localStorage.getItem(SKEY) || "null");
+  if(s && s.dayId && Date.now() - s.t < 6*3600*1000){
+    dayId = s.dayId; checked = s.checked || {};
+  } else if(s) localStorage.removeItem(SKEY);
+} catch(e) {}
 let timer = null, timerInt = null, celebrate = null, demoShown = null;
 let levelOpen = "L0", demoSkill = null, levelCelebrate = null, lineOpen = null;
 
@@ -947,23 +969,40 @@ function dayKeys(day){
 function toggleItem(k){
   if(timer && timer.key===k) stopTimer();
   checked[k] = !checked[k];
+  saveSession();
   render();
 }
 
-function startTimer(k, sec, ev){
+function startTimer(k, sec, ev, sides){
   if(ev) ev.stopPropagation();
   clearInterval(timerInt);
-  timer = {key:k, total:sec, left:sec};
+  timer = {key:k, total:sec, left:sec, sides:!!sides, side:1};
+  runTimer();
+  render();
+}
+/* "je Seite" exercises only count as done after the second side, otherwise
+   the tick appears after side one and the other leg gets skipped. */
+function runTimer(){
+  clearInterval(timerInt);
   timerInt = setInterval(()=>{
     if(!timer) return;
     timer.left--;
-    if(timer.left<=0){ timer.left=0; clearInterval(timerInt); checked[timer.key]=true; }
+    if(timer.left<=0){
+      timer.left = 0;
+      clearInterval(timerInt);
+      if(!(timer.sides && timer.side===1)){ checked[timer.key]=true; saveSession(); }
+    }
     renderTimer();
   },1000);
-  render();
 }
 function stopTimer(){ clearInterval(timerInt); timer=null; render(); }
-function restartTimer(ev){ ev.stopPropagation(); if(timer) startTimer(timer.key, timer.total); }
+function restartTimer(ev){ ev.stopPropagation(); if(timer) startTimer(timer.key, timer.total, null, timer.sides); }
+function otherSide(ev){
+  ev.stopPropagation();
+  if(!timer) return;
+  timer.side = 2; timer.left = timer.total;
+  runTimer(); renderTimer();
+}
 
 const TL_MAX = 5, TL_NEED = 3;
 /* Steps get progressively harder to reach: early wins come fast, the last
@@ -1005,10 +1044,11 @@ function finishTraining(){
   saveStore();
   celebrate = {ups, gated, tlUp};
   checked = {};
+  saveSession();
   stopTimer();
 }
 
-function closeCelebrate(){ celebrate=null; dayId=null; tab="tracker"; render(); }
+function closeCelebrate(){ celebrate=null; dayId=null; saveSession(); tab="tracker"; render(); }
 function toggleMs(id){
   const i = store.milestones.indexOf(id);
   if(i>=0) store.milestones.splice(i,1); else store.milestones.push(id);
@@ -1071,8 +1111,12 @@ function showSkill(id, ev){
   demoShown = demoSkill ? demoSkill.demo : null;
   render();
 }
-function openDay(id){ checked={}; dayId=id; render(); }
-function backToDays(){ dayId=null; stopTimer(); }
+function openDay(id){
+  const d = checkedDay();
+  if(d && d!==id) checked = {}; // ticks belong to a different day: start fresh
+  dayId = id; saveSession(); render();
+}
+function backToDays(){ dayId=null; saveSession(); stopTimer(); }
 
 /* ============ Render ============ */
 function itemHTML(day, it, k){
@@ -1082,7 +1126,7 @@ function itemHTML(day, it, k){
   const note = (it.note||it.sides)
     ? '<span class="inote">'+esc(it.note||'')+(it.note&&it.sides?' · ':'')+(it.sides?'je Seite!':'')+'</span>' : '';
   const tbtn = (it.sec && !on)
-    ? '<span class="timerbtn" style="background:'+day.color+'" onclick="startTimer(\''+k+'\','+it.sec+',event)">⏱ '+it.sec+'s</span>' : '';
+    ? '<span class="timerbtn" style="background:'+day.color+'" onclick="startTimer(\''+k+'\','+it.sec+',event,'+(it.sides?1:0)+')">⏱ '+it.sec+'s</span>' : '';
   const dk = demoFor(it);
   const dbtn = dk ? '<span class="demobtn" onclick="showDemo(\''+dk+'\',event)">👀</span>' : '';
   return '<button class="item'+(on?' done':'')+'" onclick="toggleItem(\''+k+'\')">'
@@ -1373,14 +1417,22 @@ function renderTimer(){
   const el = document.getElementById("timerOverlay");
   if(!el || !timer) return;
   const done = timer.left===0;
+  const half = done && timer.sides && timer.side===1; // side one finished, side two still to go
   const deg = (1 - timer.left/timer.total) * 360;
+  const btn = (label, fn) => '<button onclick="'+fn+'(event)" style="margin-top:14px;border:none;'
+    +'border-radius:999px;padding:10px 18px;font-weight:800;font-size:14px;'
+    +'background:var(--gold);color:var(--ink)">'+label+'</button>';
   el.innerHTML =
     '<div class="ring" style="background:conic-gradient(var(--gold) '+deg+'deg, #3E3947 0deg)">'
-    +'<div class="ringin"><div class="tnum">'+(done?'⭐':timer.left)+'</div>'
-    +'<div style="font-size:14px;opacity:.8">'+(done?'Geschafft!':'Sekunden')+'</div></div></div>'
+    +'<div class="ringin"><div class="tnum">'+(done?(half?'½':'⭐'):timer.left)+'</div>'
+    +'<div style="font-size:14px;opacity:.8">'
+    +(done?(half?'Eine Seite!':'Geschafft!'):(timer.sides?'Sek. · '+timer.side+'. Seite':'Sekunden'))
+    +'</div></div></div>'
     +'<div style="color:#fff;margin-top:18px;font-size:15px;font-weight:700">'
-    +(done?'Tippen zum Schließen':'Halten … du schaffst das!')+'</div>'
-    +(done?'<button onclick="restartTimer(event)" style="margin-top:14px;border:none;border-radius:999px;padding:10px 18px;font-weight:800;font-size:14px;background:var(--gold);color:var(--ink)">🔁 Nochmal (andere Seite)</button>':'');
+    +(done ? (half?'Jetzt die andere Seite!':'Tippen zum Schließen')
+           : 'Halten … du schaffst das!')+'</div>'
+    +(half ? btn('➡️ Andere Seite', 'otherSide')
+      : done ? btn('🔁 Nochmal', 'restartTimer') : '');
 }
 
 function render(){
