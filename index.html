@@ -132,6 +132,17 @@ button{font-family:inherit; cursor:pointer}
   text-align:left; font-weight:700; font-size:13.5px; color:var(--ink)}
 .warnbox{background:var(--goldPale); border:2px solid var(--gold); border-radius:12px;
   padding:8px 10px; font-size:12.5px; font-weight:700; margin-top:10px; color:#5A4A16}
+.who{display:flex; align-items:center; gap:7px; margin:0 0 2px auto; border:1.5px solid var(--line);
+  background:var(--card); border-radius:999px; padding:5px 12px 5px 9px; font-weight:800;
+  font-size:13.5px; color:var(--ink); box-shadow:0 2px 0 var(--shadow)}
+.pcard{background:var(--card); border-radius:22px; padding:16px; max-width:320px; width:100%;
+  color:var(--ink); text-align:left}
+.prow{display:flex; align-items:center; gap:10px; width:100%; text-align:left; border:1.5px solid var(--line);
+  background:var(--card); border-radius:14px; padding:10px 12px; margin-bottom:7px; font-weight:800;
+  font-size:15px; color:var(--ink)}
+.prow.on{border-color:var(--gold); box-shadow:0 3px 0 var(--gold)}
+.pmini{border:none; background:#EFECE4; border-radius:999px; padding:5px 9px; font-size:12px;
+  font-weight:800; color:var(--ink)}
 </style>
 </head>
 <body>
@@ -386,29 +397,63 @@ const CAT_INFO = {
   verein:{label:"Nur Verein", color:"var(--warn)"}
 };
 
-const KEY = "tumbling-star";
+/* ============ Profiles ============ */
+/* Siblings share one device, so each profile keeps its own progress and its
+   own unfinished training. `store` always points at the active profile, which
+   is why the rest of the app needs no knowledge of profiles at all. */
+const KEY = "tumbling-star";            // single-profile save from before, migrated once
+const PKEY = "tumbling-star-profiles";
+const AVATARS = ["⭐","🌟","🤸","🌈","🦄","🐯","🦊","🐼","🦋","⚡"];
 
-/* ============ State ============ */
-let store = {stars:[], milestones:[], progress:{}, levels:{}, tl:1, unit:{A:0,B:0,C:0}};
-try {
-  const raw = localStorage.getItem(KEY);
-  if (raw) store = Object.assign(store, JSON.parse(raw));
-} catch(e) {}
-TRACK_KEYS.forEach(k => { if(!store.progress[k]) store.progress[k] = {lvl:0, cnt:0}; });
-if(!store.levels) store.levels = {};
-if(!store.linesDone) store.linesDone = {};
-if(!store.tl){
-  store.tl = 1;
-  store.unit = {A:0, B:0, C:0};
-  (store.stars||[]).forEach(s => { if(store.unit[s.d]!=null && store.unit[s.d]<3) store.unit[s.d]++; });
+let profiles = [], activeId = null, store = null, profileMenu = false;
+
+function blankStore(){
+  const s = {stars:[], milestones:[], progress:{}, levels:{}, linesDone:{},
+             tl:1, unit:{A:0,B:0,C:0}};
+  TRACK_KEYS.forEach(k => s.progress[k] = {lvl:0, cnt:0});
+  return s;
 }
+function normalize(s){
+  s = Object.assign(blankStore(), s || {});
+  TRACK_KEYS.forEach(k => { if(!s.progress[k]) s.progress[k] = {lvl:0, cnt:0}; });
+  if(!s.levels) s.levels = {};
+  if(!s.linesDone) s.linesDone = {};
+  if(!s.tl){
+    s.tl = 1;
+    s.unit = {A:0, B:0, C:0};
+    (s.stars||[]).forEach(x => { if(s.unit[x.d]!=null && s.unit[x.d]<3) s.unit[x.d]++; });
+  }
+  return s;
+}
+function newId(){ return "p" + Date.now().toString(36) + Math.floor(Math.random()*1e4).toString(36); }
+function activeProfile(){ return profiles.find(p=>p.id===activeId) || profiles[0]; }
+function saveProfiles(){
+  try { localStorage.setItem(PKEY, JSON.stringify({profiles, active:activeId})); } catch(e) {}
+}
+function saveStore(){ saveProfiles(); }
+
+(function loadProfiles(){
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(PKEY) || "null"); } catch(e) {}
+  if(d && Array.isArray(d.profiles) && d.profiles.length){
+    profiles = d.profiles.map(p => ({id:p.id, name:p.name, emoji:p.emoji, data:normalize(p.data)}));
+    activeId = profiles.some(p=>p.id===d.active) ? d.active : profiles[0].id;
+  } else {
+    let legacy = null;                   // keep the progress made before profiles existed
+    try { legacy = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e) {}
+    profiles = [{id:newId(), name:"Mein Training", emoji:"⭐", data:normalize(legacy)}];
+    activeId = profiles[0].id;
+    saveProfiles();
+  }
+  store = activeProfile().data;
+})();
 
 let tab = "training", dayId = null, checked = {}, confirmReset = false;
 
 /* A training run takes 25-30 minutes and phones drop the page all the time
    (lock screen, a call, low memory). Without this the child loses every tick
    and has to start over, so the running session survives a reload for 6h. */
-const SKEY = "tumbling-star-session";
+const SKEY = () => "tumbling-star-session-" + activeId; // one unfinished training per profile
 function checkedDay(){
   const on = Object.keys(checked).filter(k=>checked[k]);
   return on.length ? on[0].split("-")[0] : null; // item keys are "<day>-<section>-<index>"
@@ -416,23 +461,63 @@ function checkedDay(){
 function saveSession(){
   try {
     const d = checkedDay();
-    if(d) localStorage.setItem(SKEY, JSON.stringify({dayId:d, checked, t:Date.now()}));
-    else localStorage.removeItem(SKEY);
+    if(d) localStorage.setItem(SKEY(), JSON.stringify({dayId:d, checked, t:Date.now()}));
+    else localStorage.removeItem(SKEY());
   } catch(e) {}
 }
-try {
-  const s = JSON.parse(localStorage.getItem(SKEY) || "null");
-  if(s && s.dayId && Date.now() - s.t < 6*3600*1000){
-    dayId = s.dayId; checked = s.checked || {};
-  } else if(s) localStorage.removeItem(SKEY);
-} catch(e) {}
+function loadSession(){
+  checked = {}; dayId = null;
+  try {
+    const s = JSON.parse(localStorage.getItem(SKEY()) || "null");
+    if(s && s.dayId && Date.now() - s.t < 6*3600*1000){
+      dayId = s.dayId; checked = s.checked || {};
+    } else if(s) localStorage.removeItem(SKEY());
+  } catch(e) {}
+}
+loadSession();
 let timer = null, timerInt = null, celebrate = null, demoShown = null;
 let levelOpen = "L0", demoSkill = null, levelCelebrate = null, lineOpen = null;
 
-function saveStore(){
-  try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e) {}
-}
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+
+function switchProfile(id){
+  if(id === activeId){ profileMenu = false; render(); return; }
+  saveSession();                       // keep the current child's unfinished training
+  stopTimer();
+  activeId = id;
+  store = activeProfile().data;
+  loadSession();
+  profileMenu = false;
+  tab = "training";
+  saveProfiles();
+  render();
+}
+function addProfile(){
+  const name = (prompt("Wie heißt du?") || "").trim();
+  if(!name) return;
+  const emoji = AVATARS[profiles.length % AVATARS.length];
+  profiles.push({id:newId(), name:name.slice(0,20), emoji, data:blankStore()});
+  saveProfiles();
+  switchProfile(profiles[profiles.length-1].id);
+}
+function renameProfile(id, ev){
+  if(ev) ev.stopPropagation();
+  const p = profiles.find(x=>x.id===id); if(!p) return;
+  const name = (prompt("Neuer Name:", p.name) || "").trim();
+  if(name) p.name = name.slice(0,20);
+  saveProfiles(); render();
+}
+function removeProfile(id, ev){
+  if(ev) ev.stopPropagation();
+  if(profiles.length < 2) return;      // never delete the last profile
+  const p = profiles.find(x=>x.id===id); if(!p) return;
+  if(!confirm('"'+p.name+'" mit allen Sternen und Stufen wirklich löschen?')) return;
+  profiles = profiles.filter(x=>x.id!==id);
+  try { localStorage.removeItem("tumbling-star-session-"+id); } catch(e) {}
+  if(activeId === id){ activeId = profiles[0].id; store = activeProfile().data; loadSession(); }
+  saveProfiles(); render();
+}
+function toggleProfileMenu(){ profileMenu = !profileMenu; render(); }
 
 /* ============ Demos (skeletal stick-figure animations) ============ */
 /* Rigid skeleton: fixed segment lengths, poses = joint angles (deg, 0=right, 90=down).
@@ -1041,9 +1126,10 @@ function adjustLvl(t, delta){
   p.cnt = 0;
   saveStore(); render();
 }
-function resetAll(){
-  store = {stars:[], milestones:[], progress:{}, levels:{}, tl:1, unit:{A:0,B:0,C:0}};
-  TRACK_KEYS.forEach(k=>store.progress[k]={lvl:0,cnt:0});
+function resetAll(){        // clears the active profile only, others stay untouched
+  store = blankStore();
+  activeProfile().data = store;
+  checked = {}; dayId = null; saveSession();
   confirmReset=false; saveStore(); render();
 }
 function setTab(t){ tab=t; confirmReset=false; render(); }
@@ -1198,8 +1284,11 @@ function trackerHTML(){
 
 /* Progress backup: localStorage does not survive a cleared browser cache,
    so parents can save/restore the whole store as a JSON file. */
+/* Backups cover every profile on the device, so one file restores the whole
+   family. Files written before profiles existed hold a single store. */
 function exportData(){
-  const blob = new Blob([JSON.stringify(store, null, 1)], {type:"application/json"});
+  const blob = new Blob([JSON.stringify({profiles, active:activeId}, null, 1)],
+    {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "tumbling-star-"+new Date().toISOString().slice(0,10)+".json";
@@ -1213,9 +1302,16 @@ function importData(){
     const f = inp.files[0]; if(!f) return;
     f.text().then(txt => {
       const data = JSON.parse(txt);
-      if(!data || typeof data !== "object" || !Array.isArray(data.stars)) throw new Error("bad");
-      store = Object.assign({}, store, data);
-      saveStore(); render();
+      if(data && Array.isArray(data.profiles) && data.profiles.length){
+        profiles = data.profiles.map(p => ({id:p.id||newId(), name:p.name||"Turner",
+          emoji:p.emoji||"⭐", data:normalize(p.data)}));
+        activeId = profiles.some(p=>p.id===data.active) ? data.active : profiles[0].id;
+      } else if(data && Array.isArray(data.stars)){
+        activeProfile().data = normalize(data);   // pre-profile backup
+      } else throw new Error("bad");
+      store = activeProfile().data;
+      loadSession();
+      saveProfiles(); render();
     }).catch(() => alert("Diese Datei ist kein Tumbling-Star-Backup."));
   };
   inp.click();
@@ -1339,6 +1435,22 @@ function zieleHTML(){
 
 function overlaysHTML(){
   let h='';
+  if(profileMenu){
+    h += '<div class="overlay" onclick="toggleProfileMenu()"><div class="pcard" onclick="event.stopPropagation()">'
+      + '<div style="font-weight:900;font-size:18px;margin-bottom:10px">Wer turnt gerade?</div>';
+    profiles.forEach(p=>{
+      h += '<div class="prow'+(p.id===activeId?' on':'')+'" onclick="switchProfile(\''+p.id+'\')">'
+        + '<span style="font-size:22px">'+p.emoji+'</span>'
+        + '<span style="flex:1">'+esc(p.name)+'</span>'
+        + '<button class="pmini" onclick="renameProfile(\''+p.id+'\',event)">✎</button>'
+        + (profiles.length>1
+          ? '<button class="pmini" onclick="removeProfile(\''+p.id+'\',event)">🗑</button>' : '')
+        + '</div>';
+    });
+    h += '<button class="bigbtn" style="margin-top:10px" onclick="addProfile()">+ Neuer Turner</button>'
+      + '<div style="font-size:12px;color:var(--sub);margin-top:10px;text-align:center">'
+      + 'Jeder hat eigene Sterne, Stufen und Ziele.</div></div></div>';
+  }
   if(demoShown && DEMOS[demoShown]){
     const d = DEMOS[demoShown];
     let extra = '';
@@ -1418,7 +1530,11 @@ function renderTimer(){
 
 function render(){
   const app = document.getElementById("app");
-  let h = '<h1>⭐ Tumbling-Star</h1><p class="sub">Dein Weg zum Bogengang – Stufe für Stufe</p>';
+  const me = activeProfile();
+  let h = '<button class="who" onclick="toggleProfileMenu()">'
+    + '<span style="font-size:19px">'+me.emoji+'</span>'
+    + '<span>'+esc(me.name)+'</span><span style="color:var(--sub)">▾</span></button>';
+  h += '<h1>⭐ Tumbling-Star</h1><p class="sub">Dein Weg zum Bogengang – Stufe für Stufe</p>';
   h += '<div class="tabs">'
     +'<button class="tab'+(tab==="training"?' on':'')+'" onclick="setTab(\'training\')">🏋️ Training</button>'
     +'<button class="tab'+(tab==="tracker"?' on':'')+'" onclick="setTab(\'tracker\')">⭐ Sterne</button>'
