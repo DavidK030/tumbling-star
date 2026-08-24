@@ -193,53 +193,53 @@ const TRACK_KEYS = Object.keys(TRACKS);
 
 const DAYS = [
   {id:"A", name:"Brücken-Tag", emoji:"🌈", color:C.gold, tint:"#FFFFFF", sections:[
-    {title:"Aufwärmen", items:[
+    {title:"Aufwärmen", kind:"warm", items:[
       {name:"20 Hampelmänner"},
       {name:"Armkreisen groß", note:"10x vor + zurück"},
       {name:"Katze-Kuh auf der Matte", note:"8x langsam"},
       {name:"Handgelenke kreisen", note:"10x pro Seite"}]},
-    {title:"Dehnen – lange halten!", items:[
+    {title:"Dehnen – lange halten!", kind:"stretch", items:[
       {name:"Schulterdehnung an der Wand", sec:30},
       {name:"Ausfallschritt-Dehnung", sec:30, sides:true},
       {name:"Kobra-Dehnung", sec:30},
       {track:"spagat"}]},
-    {title:"Brücken-Drills", items:[
+    {title:"Brücken-Drills", kind:"skill", items:[
       {track:"bruecke"},
       {name:"Brücke vor- und zurückwippen", note:"10x"},
       {name:"Brücke: Wand runterlaufen", note:"3x"},
       {track:"bogengang"}]},
-    {title:"Abschluss", items:[
+    {title:"Abschluss", kind:"finish", items:[
       {name:"5x Rad – Landung stehen!", note:"Beine strecken"},
       {name:"3x Lieblingssprung", note:"Toe Touch / Tuck"},
       {name:"Sitz-Sprung-Haltung", note:"3x 3 Sek halten", minTL:2},
       {name:"Brücken-Kick-over", note:"3 Versuche, mit Spotter!", minTL:2}]}
   ]},
   {id:"B", name:"Kraft-Tag", emoji:"💪", color:C.gold, tint:"#FFFFFF", sections:[
-    {title:"Aufwärmen", items:[
+    {title:"Aufwärmen", kind:"warm", items:[
       {name:"Hopserlauf auf der Stelle", sec:30},
       {name:"Bärengang", note:"2x durchs Zimmer"},
       {name:"Schulterkreisen", note:"10x pro Richtung"},
       {name:"10 Kniebeugen"}]},
-    {title:"Kraft", items:[
+    {title:"Kraft", kind:"strength", items:[
       {track:"handstand"},{track:"hollow"},{track:"pushup"},{track:"superman"},{track:"plank"}]},
-    {title:"Abschluss", items:[
+    {title:"Abschluss", kind:"finish", items:[
       {name:"Handstand-Versuche mit Spotter", note:"5 Versuche"},
       {name:"3x Radschlag sauber"},
       {name:"Tuck-Sprünge", note:"2x 5", minTL:2},
       {name:"Candlestick-to-Stand", note:"5x", minTL:3},
       {name:"Einbeiniger Absprung", note:"10x pro Seite", minTL:4}]},
-    {title:"Dehnen – lange halten!", items:[
+    {title:"Dehnen – lange halten!", kind:"stretch", items:[
       {name:"Schmetterling-Sitz", sec:30},
       {name:"Beinrückseite dehnen", sec:30, sides:true},
       {name:"Handgelenk-Dehnung", sec:30}]}
   ]},
   {id:"C", name:"Technik-Tag", emoji:"🤸", color:C.gold, tint:"#FFFFFF", sections:[
-    {title:"Aufwärmen", items:[
+    {title:"Aufwärmen", kind:"warm", items:[
       {name:"20 Strecksprünge"},
       {name:"Toe-Touch-Vorbereitung", note:"5x locker"},
       {name:"Handgelenke kreisen", note:"10x pro Seite"},
       {name:"Katze-Kuh auf der Matte", note:"8x langsam"}]},
-    {title:"Tumbling-Technik", items:[
+    {title:"Tumbling-Technik", kind:"skill", items:[
       {name:"5x Rad – Landung stehen!", note:"Beine strecken"},
       {name:"5x Radschlag sauber"},
       {name:"3x Radwende", note:"Füße zusammen landen"},
@@ -248,10 +248,10 @@ const DAYS = [
       {name:"Pike-Sprung", note:"3x", minTL:3},
       {name:"Hurdler", note:"je Seite 3x", minTL:5},
       {name:"Sprung-Kombination", note:"2 Sprünge in Folge, 3x", minTL:5}]},
-    {title:"Bogengang-Drills", items:[
+    {title:"Bogengang-Drills", kind:"skill", items:[
       {track:"bogengang"},
       {name:"Ein Bein in der Brücke heben", note:"je Bein 5x"}]},
-    {title:"Dehnen – lange halten!", items:[
+    {title:"Dehnen – lange halten!", kind:"stretch", items:[
       {track:"spagat"},{track:"bruecke"},
       {name:"Schulterdehnung an der Wand", sec:30}]}
   ]}
@@ -415,7 +415,7 @@ let profiles = [], activeId = null, store = null, profileMenu = false;
 
 function blankStore(){
   const s = {stars:[], milestones:[], progress:{}, levels:{}, linesDone:{},
-             tl:1, unit:{A:0,B:0,C:0}};
+             tl:1, unit:{A:0,B:0,C:0}, extra:0};
   TRACK_KEYS.forEach(k => s.progress[k] = {lvl:0, cnt:0});
   return s;
 }
@@ -447,14 +447,15 @@ function saveStore(){ saveProfiles(); }
   } else {
     let legacy = null;                   // keep the progress made before profiles existed
     try { legacy = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e) {}
-    profiles = [{id:newId(), name:"Mein Training", emoji:"⭐", data:normalize(legacy)}];
+    profiles = [{id:newId(), name:legacy ? "Mein Training" : "", emoji:"⭐", data:normalize(legacy)}];
     activeId = profiles[0].id;
-    saveProfiles();
+    saveProfiles();                       // an empty name triggers the welcome screen
   }
   store = activeProfile().data;
 })();
 
 let tab = "training", dayId = null, checked = {}, confirmReset = false;
+let genPlan = null;                    // generated session, lives only while in use
 
 /* A training run takes 25-30 minutes and phones drop the page all the time
    (lock screen, a call, low memory). Without this the child loses every tick
@@ -466,17 +467,22 @@ function checkedDay(){
 }
 function saveSession(){
   try {
-    const d = checkedDay();
-    if(d) localStorage.setItem(SKEY(), JSON.stringify({dayId:d, checked, t:Date.now()}));
+    /* A generated session only exists in memory, so it travels with the
+       session or it is lost on the next reload. */
+    const d = checkedDay() || (dayId==="G" && genPlan ? "G" : null);
+    if(d) localStorage.setItem(SKEY(), JSON.stringify({dayId:d, checked, t:Date.now(),
+      plan: d==="G" ? genPlan : null}));
     else localStorage.removeItem(SKEY());
   } catch(e) {}
 }
 function loadSession(){
-  checked = {}; dayId = null;
+  checked = {}; dayId = null; genPlan = null;
   try {
     const s = JSON.parse(localStorage.getItem(SKEY()) || "null");
     if(s && s.dayId && Date.now() - s.t < 6*3600*1000){
+      if(s.dayId === "G" && !s.plan) return;      // plan lost, nothing to resume
       dayId = s.dayId; checked = s.checked || {};
+      if(s.plan) genPlan = s.plan;
     } else if(s) localStorage.removeItem(SKEY());
   } catch(e) {}
 }
@@ -1116,11 +1122,106 @@ const CONCEPT = {title:"So ist dein Training aufgebaut", body:[
 let helpShown = null;
 function showHelp(key){ helpShown = key; render(); }
 function closeHelp(){ helpShown = null; render(); }
+
+/* ============ Generated sessions ============ */
+/* Not a random pick: a session always runs warm-up → main part → cool-down,
+   and jumps never sit behind long static stretches. Only the selection inside
+   each block varies, so every session is different but still a sound session. */
+const FOCUS = [
+  {id:"mix",     name:"Bunt gemischt",      emoji:"🎲", main:["skill","strength"]},
+  {id:"kraft",   name:"Kraft",              emoji:"💪", main:["strength"]},
+  {id:"beweg",   name:"Beweglichkeit",      emoji:"🤸", main:["stretch"], extraStretch:true},
+  {id:"bruecke", name:"Brücke & Bogengang", emoji:"🌈", main:["skill"], match:/[Bb]rücke|Bogengang|Kick-over|Wand runter|Bein in der/},
+  {id:"rad",     name:"Rad & Radwende",     emoji:"⭐", main:["skill"], match:/Rad|Radwende|Radschlag|Handstand/},
+  {id:"sprung",  name:"Sprünge",            emoji:"🦘", main:["skill","finish"], match:/[Ss]prung|Toe|Hurdler|Star|Pike|Tuck|Strecksprung/}
+];
+const STRETCH_GOALS = [
+  {id:"all",     name:"Alles ein bisschen", emoji:"🌍", match:null},
+  {id:"spagat",  name:"Spagat",             emoji:"🦵", match:/Spagat|Ausfallschritt|Schmetterling|Beinrückseite/},
+  {id:"bruecke", name:"Brücke",             emoji:"🌈", match:/Brücke|Kobra|Schulter/},
+  {id:"schulter",name:"Schultern & Handgelenke", emoji:"🙌", match:/Schulter|Handgelenk/}
+];
+
+function poolOf(kind){
+  const out = [];
+  DAYS.forEach(d => (d.sections||[]).forEach(sec => {
+    if((sec.kind||"skill") !== kind) return;
+    dayItems(sec).forEach(it => out.push(it));
+  }));
+  const seen = new Set();          // same exercise on several days, and "5x Rad" vs "3x Rad"
+  return out.filter(it => {
+    const id = it.track || (it.name||"").replace(/^\d+x?\s*/, "").toLowerCase();
+    if(seen.has(id)) return false;
+    seen.add(id); return true;
+  });
+}
+function itemLabel(it){ return it.name || (TRACKS[it.track] && TRACKS[it.track].label) || ""; }
+function pickSome(list, n, match){
+  if(!match) return shuffle(list).slice(0, n);
+  const hit  = shuffle(list.filter(it =>  match.test(itemLabel(it))));
+  const rest = shuffle(list.filter(it => !match.test(itemLabel(it))));
+  /* Keep the chosen focus dominant: rather run a shorter block than pad it
+     with work that has nothing to do with what the child picked. */
+  const fill = Math.max(0, Math.min(n - hit.length, Math.ceil(n/3)));
+  return hit.slice(0, n).concat(rest.slice(0, fill));
+}
+function shuffle(a){
+  a = a.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function buildSession(focusId){
+  const f = FOCUS.find(x=>x.id===focusId) || FOCUS[0];
+  const sections = [{title:"Aufwärmen", kind:"warm", items:pickSome(poolOf("warm"), 4)}];
+  const mainItems = [];
+  f.main.forEach(kind => mainItems.push(...pickSome(poolOf(kind), f.main.length>1?3:5, f.match)));
+  sections.push({title:"Hauptteil: "+f.name, kind:"skill", items:mainItems});
+  if(!f.main.includes("finish")) sections.push({title:"Abschluss", kind:"finish", items:pickSome(poolOf("finish"), 2)});
+  sections.push({title:"Dehnen zum Schluss", kind:"stretch",
+    items:pickSome(poolOf("stretch"), f.extraStretch?5:3, f.match)});
+  genPlan = {id:"G", name:"Extra-Training: "+f.name, emoji:f.emoji, color:C.gold,
+             tint:"#FFFFFF", sections, generated:true};
+  checked = {}; dayId = "G"; tab = "training"; saveSession(); render();
+}
+function buildStretch(goalId){
+  const g = STRETCH_GOALS.find(x=>x.id===goalId) || STRETCH_GOALS[0];
+  const items = pickSome(poolOf("stretch"), 5, g.match)
+    .concat(pickSome(poolOf("warm"), 2));            // gentle mobility to finish
+  genPlan = {id:"G", name:"Dehnen: "+g.name, emoji:g.emoji, color:C.gold, tint:"#FFFFFF",
+             sections:[{title:"Locker machen", kind:"warm", items:items.slice(5)},
+                       {title:"Dehnen – ruhig atmen", kind:"stretch", items:items.slice(0,5)}],
+             generated:true};
+  checked = {}; dayId = "G"; tab = "training"; saveSession(); render();
+}
+function findDay(id){ return id==="G" ? genPlan : DAYS.find(d=>d.id===id); }
+
+let picker = null;                                   // "session" | "stretch"
+function showPicker(kind){ picker = kind; render(); }
+function closePicker(){ picker = null; render(); }
+function pickerHTML(){
+  const isSession = picker === "session";
+  const list = isSession ? FOCUS : STRETCH_GOALS;
+  const fn = isSession ? "buildSession" : "buildStretch";
+  let h = '<div class="overlay" onclick="closePicker()"><div class="pcard" onclick="event.stopPropagation()">'
+    + '<div style="font-weight:900;font-size:18px;margin-bottom:4px">'
+    + (isSession ? "Worauf hast du Lust?" : "Was willst du dehnen?")+'</div>'
+    + '<div style="font-size:12.5px;color:var(--sub);margin-bottom:10px">'
+    + (isSession ? "Aufwärmen und Abschluss sind immer dabei."
+                 : "Ruhig halten und weiteratmen – nie in den Schmerz hinein.")+'</div>';
+  list.forEach(f=>{
+    h += '<div class="prow" onclick="closePicker();'+fn+'(\''+f.id+'\')">'
+      + '<span style="font-size:22px">'+f.emoji+'</span>'
+      + '<span style="flex:1">'+f.name+'</span><span style="color:var(--gold)">›</span></div>';
+  });
+  return h + '<div style="text-align:center;margin-top:8px">'
+    + '<button class="reset" onclick="closePicker()">Abbrechen</button></div></div></div>';
+}
 /* Steps get progressively harder to reach: early wins come fast, the last
    steps take real training time (stepAfter + current level trainings). */
 function stepNeed(tr, p){ return tr.stepAfter + p.lvl; }
 function finishTraining(){
-  const day = DAYS.find(d=>d.id===dayId);
+  const day = findDay(dayId);
   if(!day) return;
   const tracksInDay = new Set();
   day.sections.forEach((sec,s)=>dayItems(sec).forEach((it,i)=>{
@@ -1145,12 +1246,19 @@ function finishTraining(){
       }
     }
   });
-  store.unit[day.id] = (store.unit[day.id]||0) + 1;
   let tlUp = false;
-  if(store.tl < TL_MAX && ["A","B","C"].every(d=>store.unit[d]>=TL_NEED)){
-    store.tl++;
-    store.unit = {A:0, B:0, C:0};
-    tlUp = true;
+  /* Extra sessions build the exercise steps but do not raise the training
+     level: that stays tied to doing all three days, so the balance between
+     flexibility, strength and technique cannot be skipped. */
+  if(day.generated){
+    store.extra = (store.extra||0) + 1;
+  } else {
+    store.unit[day.id] = (store.unit[day.id]||0) + 1;
+    if(store.tl < TL_MAX && ["A","B","C"].every(d=>store.unit[d]>=TL_NEED)){
+      store.tl++;
+      store.unit = {A:0, B:0, C:0};
+      tlUp = true;
+    }
   }
   saveStore();
   celebrate = {ups, gated, tlUp};
@@ -1248,7 +1356,7 @@ function itemHTML(day, it, k){
 }
 
 function trainingHTML(){
-  const day = DAYS.find(d=>d.id===dayId);
+  const day = findDay(dayId);
   if(!day){
     let h = '<div class="dayhead" style="background:var(--card);box-shadow:0 4px 0 var(--gold);margin-bottom:12px">'
       +'<span style="font-size:26px">🏋️</span>'
@@ -1263,6 +1371,17 @@ function trainingHTML(){
         +'<span class="in">'+'⭐'.repeat(u)+'☆'.repeat(TL_NEED-u)+' in diesem Level · ca. 25–30 Min</span></span>'
         +'<span class="ar" style="color:'+d.color+'">›</span></button>';
     });
+    h += '<p style="font-size:15px;font-weight:700;margin:18px 2px 8px">Oder etwas Extra – jedes Mal neu zusammengestellt:</p>';
+    h += '<button class="daycard" style="background:var(--card);box-shadow:0 4px 0 var(--gold)" onclick="showPicker(\'session\')">'
+      +'<span class="em">🎲</span><span><span class="nm">Extra-Training</span>'
+      +'<span class="in">20–30 Min · du wählst den Schwerpunkt</span></span>'
+      +'<span class="ar" style="color:var(--gold)">›</span></button>';
+    h += '<button class="daycard" style="background:var(--card);box-shadow:0 4px 0 var(--gold)" onclick="showPicker(\'stretch\')">'
+      +'<span class="em">🧘</span><span><span class="nm">Nur Dehnen</span>'
+      +'<span class="in">10–15 Min · für Spagat, Brücke oder Schultern</span></span>'
+      +'<span class="ar" style="color:var(--gold)">›</span></button>';
+    if(store.extra) h += '<div style="font-size:12.5px;color:var(--sub);text-align:center;margin-top:8px">'
+      +'Schon '+store.extra+' Extra-Training'+(store.extra===1?'':'s')+' gemacht 💪</div>';
     h += '<div class="safety"><b style="color:#8A6A0E">! SICHERHEIT:</b> Immer auf der Matte üben. Bogengang ohne Hilfe erst mit Trainer-Okay. Flick-Flack &amp; Salto: <b>nur im Verein!</b></div>';
     return h;
   }
@@ -1271,7 +1390,8 @@ function trainingHTML(){
   let h = '<button class="back" onclick="backToDays();render()">‹ Zurück zur Auswahl</button>';
   h += '<div class="dayhead" style="background:'+day.tint+';box-shadow:0 4px 0 '+day.color+'">'
     +'<span style="font-size:30px">'+day.emoji+'</span>'
-    +'<div style="flex:1"><div style="font-weight:900;font-size:17px">Tag '+day.id+': '+day.name+'</div>'
+    +'<div style="flex:1"><div style="font-weight:900;font-size:17px">'
+    +(day.generated ? esc(day.name) : 'Tag '+day.id+': '+day.name)+'</div>'
     +'<div class="pbar"><div class="pfill" style="width:'+(done/keys.length*100)+'%;background:'+day.color+'"></div></div></div>'
     +'<div style="font-weight:900;font-size:14px">'+done+'/'+keys.length+'</div></div>';
   day.sections.forEach((sec,s)=>{
@@ -1483,6 +1603,7 @@ function zieleHTML(){
 
 function overlaysHTML(){
   let h='';
+  if(picker) h += pickerHTML();
   if(helpShown){
     const d = helpShown==="concept" ? CONCEPT : (HELP[helpShown] || HELP.training);
     h += '<div class="overlay" onclick="closeHelp()"><div class="helpcard" onclick="event.stopPropagation()">'
@@ -1588,8 +1709,32 @@ function renderTimer(){
       : done ? btn('🔁 Nochmal', 'restartTimer') : '');
 }
 
+function saveName(){
+  const el = document.getElementById("nameIn");
+  const v = (el && el.value || "").trim();
+  activeProfile().name = v ? v.slice(0,20) : "Turner";
+  saveProfiles(); render();
+}
+/* First ever start: ask for a first name so the app can address the child
+   directly. Nothing else is asked, and the name never leaves the device. */
+function welcomeHTML(){
+  return '<div class="overlay" style="background:var(--ink)"><div class="pcard">'
+    + '<div style="font-size:40px;text-align:center">⭐</div>'
+    + '<div style="font-weight:900;font-size:21px;text-align:center;margin:6px 0 4px">Willkommen bei Tumbling-Star!</div>'
+    + '<div style="font-size:13.5px;color:var(--sub);text-align:center;margin-bottom:14px">Wie heißt du?</div>'
+    + '<input id="nameIn" maxlength="20" placeholder="Dein Vorname" autofocus '
+    + 'style="width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;'
+    + 'font-family:inherit;font-size:16px;font-weight:700;background:var(--bg);color:var(--ink)" '
+    + 'onkeydown="if(event.key===\'Enter\')saveName()">'
+    + '<button class="bigbtn" onclick="saveName()">Los geht\'s!</button>'
+    + '<div style="font-size:11.5px;color:var(--sub);text-align:center;margin-top:10px">'
+    + 'Bleibt auf deinem Gerät – wir speichern nichts im Internet.</div>'
+    + '</div></div>';
+}
+
 function render(){
   const app = document.getElementById("app");
+  if(!activeProfile().name){ app.innerHTML = welcomeHTML(); return; }
   const me = activeProfile();
   /* One child on their own phone never needs a profile switcher, so it only
      shows up once a second profile exists (shared tablet, siblings). */
