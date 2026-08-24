@@ -1146,7 +1146,24 @@ function nextPhase(){
     SOUND.done();
   }
 }
-function stopTimer(){ clearInterval(timerInt); keepAwake(false); timer=null; render(); }
+function stopTimer(ev){ if(ev) ev.stopPropagation(); clearInterval(timerInt); keepAwake(false); timer=null; render(); }
+/* Tapping the timer pauses instead of closing: mid-hold you brush the screen
+   easily, and losing the run for that would be worse than a stray pause. */
+function pauseTimer(){
+  if(!timer) return;
+  if(timer.phase === "done"){ stopTimer(); return; }
+  if(timer.paused){
+    timer.endsAt = Date.now() + timer.remain*1000;
+    timer.paused = false;
+    timer.lastTick = null;
+    runTimer();
+  } else {
+    timer.remain = Math.max(0, (timer.endsAt - Date.now())/1000);
+    timer.paused = true;
+    clearInterval(timerInt);
+  }
+  renderTimer();
+}
 function restartTimer(ev){ ev.stopPropagation(); if(timer) startTimer(timer.key, timer.total, null, timer.sides); }
 function addTime(ev){                      // more time to get into position
   ev.stopPropagation();
@@ -1745,7 +1762,7 @@ function overlaysHTML(){
       +'<div style="color:#B0A890;font-size:13px;margin-top:14px">Tippen zum Weitermachen</div></div>';
   }
   if(timer){
-    h += '<div class="overlay" id="timerOverlay" onclick="stopTimer()"></div>';
+    h += '<div class="overlay" id="timerOverlay" onclick="pauseTimer()"></div>';
   }
   if(celebrate){
     let ups='', gated='';
@@ -1787,12 +1804,17 @@ function renderTimer(){
   const btn = (label, fn) => '<button onclick="'+fn+'(event)" style="margin-top:14px;border:none;'
     +'border-radius:999px;padding:10px 18px;font-weight:800;font-size:14px;'
     +'background:var(--gold);color:var(--ink)">'+label+'</button>';
+  if(timer.paused){ face.num = "⏸"; face.sub = face.sub; face.msg = "Pause – tippen und weiter geht's"; }
   el.innerHTML =
-    '<div class="ring" style="background:conic-gradient('+face.ring+' '+deg+'deg, #3E3947 0deg)">'
+    '<button onclick="stopTimer(event)" style="position:absolute;top:calc(14px + env(safe-area-inset-top));'
+    +'right:16px;border:none;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;'
+    +'width:38px;height:38px;font-size:17px;font-weight:800">✕</button>'
+    +'<div class="ring" style="background:conic-gradient('+face.ring+' '+deg+'deg, #3E3947 0deg)">'
     +'<div class="ringin"><div class="tnum">'+face.num+'</div>'
     +'<div style="font-size:14px;opacity:.8">'+face.sub+'</div></div></div>'
     +'<div style="color:#fff;margin-top:18px;font-size:15px;font-weight:700">'+face.msg+'</div>'
-    + (p==="done" ? btn('🔁 Nochmal', 'restartTimer') : btn('+10 Sek.', 'addTime'));
+    + (p==="done" ? btn('🔁 Nochmal', 'restartTimer')
+      : timer.paused ? '' : btn('+10 Sek.', 'addTime'));
 }
 
 function saveName(){
