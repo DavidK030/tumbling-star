@@ -2,3 +2,7 @@
 # Decide deliberately before publishing any of them (see videos/README note).
 videos/*.mp4
 videos/*.mov
+
+# Children's progress lives here — never commit it.
+server/data.json
+server/data.json.tmp

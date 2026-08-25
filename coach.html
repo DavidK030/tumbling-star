@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tumbling-Star · Trainer</title>
+<meta name="theme-color" content="#FAF8F3">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap');
+:root{
+  --bg:#FAF8F3; --ink:#191621; --sub:#8A8194;
+  --gold:#C9A227; --goldSoft:#E7C463; --goldPale:#FFF6DB; --warn:#E2654F;
+  --card:#FFFFFF; --line:#E8E2D2; --shadow:#E8E2D2;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+body{margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Baloo 2', ui-rounded, system-ui, sans-serif}
+#app{max-width:760px; margin:0 auto; padding:16px 14px 50px;
+  padding-top:calc(16px + env(safe-area-inset-top))}
+h1{font-size:25px; margin:2px 0 0; text-align:center}
+.sub{text-align:center; color:var(--sub); margin:2px 0 16px; font-size:13.5px}
+button{font-family:inherit; cursor:pointer}
+.card{background:var(--card); border:1.5px solid var(--line); border-radius:18px;
+  padding:14px 15px; box-shadow:0 3px 0 var(--shadow); margin-bottom:12px}
+.btn{width:100%; padding:13px; border-radius:14px; border:none; font-size:16px;
+  font-weight:800; color:var(--goldSoft); background:var(--ink);
+  box-shadow:0 4px 0 var(--gold); margin-top:10px}
+.mini{border:none; background:#EFECE4; border-radius:999px; padding:6px 12px;
+  font-size:12.5px; font-weight:800; color:var(--ink)}
+input{width:100%; border:1.5px solid var(--line); border-radius:12px; padding:11px 12px;
+  font-family:inherit; font-size:16px; font-weight:700; background:var(--bg); color:var(--ink)}
+.lbl{font-size:14px; font-weight:800; margin:16px 2px 8px; color:var(--sub)}
+.row{display:flex; align-items:center; gap:10px}
+.name{font-weight:900; font-size:17px}
+.badge{font-size:11px; font-weight:900; border-radius:999px; padding:3px 9px;
+  background:var(--gold); color:var(--ink)}
+.quiet{background:#F2EEE3; color:var(--sub)}
+.warnb{background:var(--warn); color:#fff}
+.meta{font-size:12.5px; color:var(--sub)}
+.bar{height:9px; background:#F2EEE3; border-radius:999px; overflow:hidden; flex:1}
+.fill{height:100%; background:var(--gold); border-radius:999px}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:7px; margin-top:10px}
+.chip{background:var(--bg); border:1.5px solid var(--line); border-radius:11px; padding:7px 9px;
+  font-size:12.5px; display:flex; align-items:center; gap:7px}
+.chip b{font-weight:800}
+.hint{background:var(--goldPale); border:2px solid var(--gold); border-radius:14px;
+  padding:11px 13px; font-size:13px; line-height:1.5; color:#5A4A16}
+.code{font-size:34px; font-weight:800; letter-spacing:5px; text-align:center;
+  background:var(--bg); border-radius:14px; padding:12px; margin:8px 0}
+</style>
+</head>
+<body>
+<div id="app">Lade…</div>
+<script>
+const TKEY = "tumbling-star-coach";
+let coach = null;          // {token, name}
+try { coach = JSON.parse(localStorage.getItem(TKEY) || "null"); } catch(e) {}
+let athletes = [], D = null, busy = false, msg = "";
+
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const api = (path, body) => fetch(path, {method:"POST",
+  headers:{"content-type":"application/json"}, body:JSON.stringify(body||{})})
+  .then(r => r.json().then(j => r.ok ? j : Promise.reject(new Error(j.error||"Fehler"))));
+
+/* The exercise definitions live in the app; pulling them from there keeps one
+   source of truth instead of a second copy that silently drifts. */
+fetch("index.html").then(r=>r.text()).then(src=>{
+  const data = src.split("/* ============ Daten ============ */")[1]
+                  .split("/* ============ Profiles ============ */")[0];
+  D = new Function(data + "; return {TRACKS, TRACK_KEYS, LINES, TL_FOCUS, LEVELS, MILESTONES};")();
+  if(coach) load(); else render();
+}).catch(()=>{ msg = "Konnte die Übungsdaten nicht laden."; render(); });
+
+function load(){
+  busy = true; render();
+  api("/api/coach/athletes", {token:coach.token})
+    .then(r => { coach.name = r.coach; athletes = r.athletes; msg = ""; })
+    .catch(e => { msg = e.message; if(/Trainer-Zugang/.test(e.message)) logout(true); })
+    .finally(()=>{ busy = false; render(); });
+}
+function logout(silent){
+  localStorage.removeItem(TKEY); coach = null; athletes = [];
+  if(!silent) render();
+}
+function signUp(){
+  const name = (document.getElementById("cname").value||"").trim();
+  if(!name) return;
+  api("/api/coach", {name}).then(r=>{
+    coach = {token:r.token, name:r.name};
+    localStorage.setItem(TKEY, JSON.stringify(coach));
+    load();
+  }).catch(e=>{ msg = e.message; render(); });
+}
+function claim(){
+  const el = document.getElementById("pcode");
+  const code = (el.value||"").replace(/\D/g,"");
+  if(code.length !== 6){ msg = "Der Code hat 6 Ziffern."; render(); return; }
+  api("/api/pair/claim", {token:coach.token, code}).then(r=>{
+    msg = r.athlete.name+" ist jetzt in deiner Gruppe.";
+    el.value = ""; load();
+  }).catch(e=>{ msg = e.message; render(); });
+}
+function remove(id, name){
+  if(!confirm(name+" aus deiner Gruppe entfernen?")) return;
+  api("/api/coach/remove", {token:coach.token, athlete:id}).then(load);
+}
+
+function ago(ts){
+  if(!ts) return "noch nie";
+  const d = Math.floor((Date.now()-ts)/86400000);
+  if(d <= 0) return "heute";
+  if(d === 1) return "gestern";
+  if(d < 7) return "vor "+d+" Tagen";
+  const w = Math.floor(d/7);
+  return "vor "+w+" Woche"+(w===1?"":"n");
+}
+function weekCount(log){
+  const wk = Date.now() - 7*86400000;
+  return (log||[]).filter(e => e.t > wk).length;
+}
+
+function athleteCard(a){
+  const s = a.data || {};
+  const tl = s.tl || 1;
+  const week = weekCount(s.log);
+  const stale = !a.updated || Date.now()-a.updated > 14*86400000;
+  /* Skill lines a coach actually cares about: what is this child working on
+     right now, and which steps wait for a trainer's confirmation. */
+  const lines = (D.LINES||[]).map(ln=>{
+    const done = ln.steps.filter(st => (s.linesDone||{})[st.id]).length;
+    const cur = ln.steps.find(st => !(s.linesDone||{})[st.id]);
+    return {name:ln.name, done, total:ln.steps.length, cur, waiting: cur && cur.cat === "verein"};
+  });
+  const waiting = lines.filter(l => l.waiting);
+  const steps = (D.TRACK_KEYS||[]).map(k=>{
+    const tr = D.TRACKS[k], p = (s.progress||{})[k] || {lvl:0};
+    const def = tr.levels[Math.min(p.lvl, tr.levels.length-1)];
+    return '<div class="chip"><b>'+esc(tr.label)+'</b><span class="meta" style="margin-left:auto">'
+      + (def.sec ? def.sec+" Sek." : esc(def.note||def.name||"")) + ' · '+(p.lvl+1)+'/'+tr.levels.length+'</span></div>';
+  }).join("");
+
+  return '<div class="card"><div class="row">'
+    + '<span class="name">'+esc(a.name)+'</span>'
+    + '<span class="badge">Level '+tl+'</span>'
+    + (stale ? '<span class="badge warnb">seit '+ago(a.updated)+' nichts</span>'
+             : '<span class="badge quiet">'+week+'× diese Woche</span>')
+    + '<button class="mini" style="margin-left:auto" onclick="remove(\''+a.id+'\',\''+esc(a.name)+'\')">entfernen</button>'
+    + '</div>'
+    + '<div class="meta" style="margin-top:6px">Zuletzt geturnt: '+ago(a.updated)
+    + ' · Schwerpunkt: '+esc((D.TL_FOCUS||{})[tl]||"–")+'</div>'
+    + (waiting.length
+      ? '<div class="hint" style="margin-top:10px"><b>Wartet auf dein Okay:</b> '
+        + waiting.map(l=>esc(l.cur.name)).join(", ")+'</div>' : '')
+    + '<div class="lbl" style="margin:12px 2px 6px">Skill-Linien</div>'
+    + lines.map(l =>
+        '<div class="row" style="margin-bottom:6px"><span style="font-size:12.5px;min-width:120px">'
+        + esc(l.name)+'</span><div class="bar"><div class="fill" style="width:'
+        + (l.done/l.total*100)+'%"></div></div><span class="meta">'+l.done+'/'+l.total+'</span></div>').join("")
+    + '<div class="lbl" style="margin:12px 2px 6px">Übungsstufen</div>'
+    + '<div class="grid">'+steps+'</div></div>';
+}
+
+function render(){
+  const app = document.getElementById("app");
+  let h = '<h1>🏅 Trainer-Ansicht</h1>';
+
+  if(!coach){
+    h += '<p class="sub">Sieh, woran deine Athleten zuhause arbeiten.</p>'
+      + '<div class="card"><div style="font-weight:900;font-size:17px;margin-bottom:8px">Zugang anlegen</div>'
+      + '<div class="meta" style="margin-bottom:10px">Nur dein Name – keine E-Mail, kein Passwort. '
+      + 'Der Zugang bleibt auf diesem Gerät gespeichert.</div>'
+      + '<input id="cname" maxlength="40" placeholder="Dein Name" onkeydown="if(event.key===\'Enter\')signUp()">'
+      + '<button class="btn" onclick="signUp()">Los geht\'s</button></div>';
+    if(msg) h += '<div class="hint">'+esc(msg)+'</div>';
+    app.innerHTML = h; return;
+  }
+
+  h += '<p class="sub">Hallo '+esc(coach.name)+' · '+athletes.length+' Athlet'
+    + (athletes.length===1?'':'en')+'</p>';
+  h += '<div class="card"><div class="row">'
+    + '<input id="pcode" inputmode="numeric" maxlength="6" placeholder="Code vom Kind (6 Ziffern)" '
+    + 'onkeydown="if(event.key===\'Enter\')claim()">'
+    + '<button class="mini" style="background:var(--ink);color:var(--goldSoft);padding:11px 16px" '
+    + 'onclick="claim()">Hinzufügen</button></div>'
+    + '<div class="meta" style="margin-top:7px">Das Kind erzeugt den Code in seiner App unter '
+    + '„Mit Trainer verbinden“ und liest ihn dir vor.</div></div>';
+  if(msg) h += '<div class="hint" style="margin-bottom:12px">'+esc(msg)+'</div>';
+
+  if(busy) h += '<p class="sub">Lade…</p>';
+  else if(!athletes.length) h += '<div class="card"><div class="meta">Noch niemand verbunden. '
+    + 'Lass dir im Training den Code deiner Turner geben.</div></div>';
+  else {
+    const sorted = athletes.slice().sort((a,b)=>(b.updated||0)-(a.updated||0));
+    h += sorted.map(athleteCard).join("");
+  }
+  h += '<div style="text-align:center;margin-top:16px">'
+    + '<button class="mini" onclick="load()">Aktualisieren</button> '
+    + '<button class="mini" onclick="logout()">Abmelden</button></div>';
+  app.innerHTML = h;
+}
+</script>
+</body>
+</html>

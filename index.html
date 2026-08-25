@@ -510,6 +510,53 @@ let zieleView = "ziele";               // "ziele" | "stufen"
 
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
 
+/* ============ Trainer connection (optional) ============ */
+/* Off unless a child deliberately connects: the app works fully offline and
+   nothing leaves the device until someone taps "Mit Trainer verbinden". The
+   profile id doubles as the write secret, so no login and no email is needed.
+   Empty SRV_URL means the sync server serves this page too, which is the case
+   whenever a club runs its own; the public copy has no server behind it. */
+const SRV_URL = "";
+const SRV = SRV_URL || location.origin;
+let pairCode = null, syncMsg = "";
+function coachOn(){ return !!activeProfile().coach; }
+function srv(path, body){
+  return fetch(SRV+path, {method:"POST", headers:{"content-type":"application/json"},
+    body:JSON.stringify(body||{})})
+    .then(r => r.json().then(j => r.ok ? j : Promise.reject(new Error(j.error||"Fehler"))));
+}
+function connectCoach(){
+  const me = activeProfile();
+  srv("/api/athlete", {id:me.id, name:me.name})
+    .then(()=> srv("/api/sync", {id:me.id, name:me.name, data:store}))
+    .then(()=> srv("/api/pair/code", {id:me.id}))
+    .then(r=>{
+      me.coach = true; saveProfiles();
+      pairCode = r.code; syncMsg = ""; render();
+    })
+    .catch(()=>{
+      syncMsg = "Hier gibt es keinen Trainer-Server. Öffne die App über die Adresse, "
+        + "die dir dein Verein gegeben hat.";
+      render();
+    });
+}
+function syncNow(){
+  const me = activeProfile();
+  if(!me.coach) return Promise.resolve();
+  return srv("/api/sync", {id:me.id, name:me.name, data:store})
+    .then(()=>{ me.lastSync = Date.now(); saveProfiles(); })
+    .catch(()=>{});                    // offline is normal, try again next time
+}
+function disconnectCoach(){
+  const me = activeProfile();
+  if(!confirm("Verbindung trennen und alle Daten beim Trainer löschen?")) return;
+  srv("/api/athlete/forget", {id:me.id})
+    .catch(()=>{})
+    .then(()=>{ me.coach = false; me.lastSync = 0; pairCode = null;
+      syncMsg = "Getrennt – deine Daten sind gelöscht."; saveProfiles(); render(); });
+}
+function closeCode(){ pairCode = null; render(); }
+
 function switchProfile(id){
   if(id === activeId){ profileMenu = false; render(); return; }
   saveSession();                       // keep the current child's unfinished training
@@ -1343,6 +1390,7 @@ function finishTraining(){
     }
   });
   store.log.push({d: day.generated ? "G" : day.id, t: Date.now()});
+  setTimeout(syncNow, 0);              // let the coach see it, if connected
   if(store.log.length > 300) store.log = store.log.slice(-300);
   let tlUp = false;
   /* Extra sessions build the exercise steps but do not raise the training
@@ -1588,6 +1636,15 @@ function trackerHTML(){
     +'<button class="reset" onclick="'+(profiles.length>1?'toggleProfileMenu()':'addProfile()')+'">'
     +(profiles.length>1 ? '👥 Turner wechseln' : '👥 Noch ein Kind übt mit')+'</button></div>';
   h += '<div style="text-align:center;margin-top:10px">'
+    + (coachOn()
+      ? '<span style="font-size:12.5px;color:var(--sub)">🔗 Mit Trainer verbunden</span>'
+        + '<span style="color:var(--sub)"> · </span>'
+        + '<button class="reset" onclick="disconnectCoach()">trennen</button>'
+      : '<button class="reset" onclick="connectCoach()">🔗 Mit Trainer verbinden</button>')
+    + '</div>';
+  if(syncMsg) h += '<div style="font-size:12px;color:var(--sub);text-align:center;margin-top:6px">'
+    + esc(syncMsg)+'</div>';
+  h += '<div style="text-align:center;margin-top:10px">'
     + (confirmReset
       ? '<button class="reset2" onclick="resetAll()">Wirklich alles löschen (Level, Ziele &amp; Stufen)?</button>'
       : '<button class="reset" onclick="confirmReset=true;render()">Alles zurücksetzen</button>')
@@ -1768,6 +1825,16 @@ function stufenHTML(){
 
 function overlaysHTML(){
   let h='';
+  if(pairCode){
+    h += '<div class="overlay" onclick="closeCode()"><div class="pcard" onclick="event.stopPropagation()">'
+      + '<div style="font-weight:900;font-size:19px;text-align:center">Sag deinem Trainer diesen Code</div>'
+      + '<div style="font-size:38px;font-weight:800;letter-spacing:6px;text-align:center;'
+      + 'background:var(--bg);border-radius:16px;padding:14px;margin:12px 0">'+pairCode+'</div>'
+      + '<div style="font-size:12.5px;color:var(--sub);text-align:center;line-height:1.5">'
+      + 'Der Code gilt 10 Minuten. Danach sieht dein Trainer, woran du zuhause arbeitest – '
+      + 'deinen Vornamen und deinen Trainingsfortschritt, sonst nichts.</div>'
+      + '<button class="bigbtn" onclick="closeCode()">Alles klar</button></div></div>';
+  }
   if(picker) h += pickerHTML();
   if(helpShown){
     const d = helpShown==="concept" ? CONCEPT : (HELP[helpShown] || HELP.training);
