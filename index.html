@@ -10,24 +10,42 @@
 <meta name="theme-color" content="#FAF8F3">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap');
+/* Font ships with the app: it has to render in the gym without a network,
+   and a store app must not depend on Google delivering a file. Baloo 2 is a
+   variable font under the SIL Open Font License, so one file covers both
+   weights we use. */
+@font-face{
+  font-family:'Baloo 2'; font-style:normal; font-weight:400 800;
+  font-display:swap; src:url('fonts/baloo2.woff2') format('woff2');
+  /* Latin only. Without this the font claims every character including the
+     emoji we rely on, and iOS renders them as empty boxes instead of falling
+     back to the system emoji font. */
+  unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 :root{
   --bg:#FAF8F3; --ink:#191621; --sub:#8A8194;
   --gold:#C9A227; --goldSoft:#E7C463; --goldPale:#FFF6DB; --warn:#E2654F;
   --card:#FFFFFF; --line:#E8E2D2; --shadow:#E8E2D2;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+/* The native app has no browser chrome, so the page itself must be the
+   scroll container and reach full height. */
+html{height:100%; -webkit-text-size-adjust:100%}
 body{
-  margin:0; background:var(--bg); color:var(--ink);
-  font-family:'Baloo 2', ui-rounded, 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  margin:0; min-height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  background:var(--bg); color:var(--ink);
+  font-family:'Baloo 2', ui-rounded, 'Nunito', 'Segoe UI', system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
 }
 #app{max-width:460px; margin:0 auto; padding:16px 14px 44px;
   padding-top:calc(16px + env(safe-area-inset-top));}
 h1{text-align:center; font-size:30px; font-weight:800; margin:4px 0 0}
 .sub{text-align:center; color:var(--sub); margin:2px 0 14px; font-size:14px}
-button{font-family:inherit; cursor:pointer}
+/* color:inherit — iOS paints buttons in the system link blue otherwise */
+button{font-family:inherit; color:inherit; cursor:pointer}
 .tabs{display:flex; gap:6px; margin-bottom:14px}
 .tab{flex:1; padding:10px 2px; border-radius:14px; border:none; font-size:12.5px;
   font-weight:800; background:#EFECE4; color:var(--ink); box-shadow:0 3px 0 #DDD6C6;
@@ -72,7 +90,9 @@ button{font-family:inherit; cursor:pointer}
 .pfill{height:100%; border-radius:999px; transition:width .25s}
 .overlay{position:fixed; inset:0; background:rgba(25,22,33,.92); display:flex;
   flex-direction:column; align-items:center; justify-content:center; z-index:50;
-  text-align:center; padding:24px}
+  text-align:center;
+  /* full screen inside the native app: keep clear of notch and home indicator */
+  padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))}
 .ring{width:190px; height:190px; border-radius:50%; display:flex;
   align-items:center; justify-content:center}
 .ringin{width:158px; height:158px; border-radius:50%; background:var(--ink);
@@ -2015,9 +2035,17 @@ function render(){
 }
 render();
 
-if ("serviceWorker" in navigator &&
+/* Web only. Inside the native app every file is already on the device, so the
+   worker adds nothing but a cache layer that serves yesterday's build. */
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform
+                  && window.Capacitor.isNativePlatform());
+if (!NATIVE && "serviceWorker" in navigator &&
     (location.protocol === "https:" || location.hostname === "localhost")) {
   navigator.serviceWorker.register("sw.js");
+} else if (NATIVE && "serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then(rs => rs.forEach(r => r.unregister()))     // clean up after an update
+    .catch(()=>{});
 }
 </script>
 </body>

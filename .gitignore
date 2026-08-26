@@ -6,3 +6,10 @@ videos/*.mov
 # Children's progress lives here — never commit it.
 server/data.json
 server/data.json.tmp
+
+# Build output and native project scaffolding
+node_modules/
+www/
+ios/
+!ios/App/App/Assets.xcassets
+DerivedData/

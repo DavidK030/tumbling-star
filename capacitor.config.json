@@ -1,0 +1,11 @@
+{
+  "appId": "de.tumblingstar.app",
+  "appName": "Tumbling-Star",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#FAF8F3",
+    "scrollEnabled": true,
+    "limitsNavigationsToAppBoundDomains": true
+  }
+}
