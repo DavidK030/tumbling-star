@@ -53,6 +53,9 @@ input{width:100%; border:1.5px solid var(--line); border-radius:12px; padding:11
 <div id="app">Lade…</div>
 <script>
 const TKEY = "tumbling-star-coach";
+/* ?demo=1 shows the whole view filled with made-up athletes, so it can be
+   handed to a coach for feedback without a running sync server. */
+const DEMO = new URLSearchParams(location.search).has("demo");
 let coach = null;          // {token, name}
 try { coach = JSON.parse(localStorage.getItem(TKEY) || "null"); } catch(e) {}
 let athletes = [], D = null, busy = false, msg = "";
@@ -68,10 +71,42 @@ fetch("index.html").then(r=>r.text()).then(src=>{
   const data = src.split("/* ============ Daten ============ */")[1]
                   .split("/* ============ Profiles ============ */")[0];
   D = new Function(data + "; return {TRACKS, TRACK_KEYS, LINES, TL_FOCUS, LEVELS, MILESTONES};")();
-  if(coach) load(); else render();
+  if(DEMO){ coach = {token:"demo", name:"Demo"}; athletes = demoAthletes(); render(); }
+  else if(coach) load(); else render();
 }).catch(()=>{ msg = "Konnte die Übungsdaten nicht laden."; render(); });
 
+/* Built from the real definitions rather than hard-coded copies, so the demo
+   cannot drift away from the app. Three states a coach should judge: someone
+   active, a beginner, and someone who stopped training. */
+function demoAthletes(){
+  const day = 86400000, now = Date.now();
+  const doneSteps = counts => {
+    const done = {};
+    (D.LINES||[]).forEach((ln, i) => ln.steps.slice(0, counts[i]||0)
+      .forEach(st => done[st.id] = true));
+    return done;
+  };
+  const levels = offset => {
+    const p = {};
+    (D.TRACK_KEYS||[]).forEach((k, i) => {
+      const max = D.TRACKS[k].levels.length - 1;
+      p[k] = {lvl: Math.min(max, Math.max(0, offset + (i % 3) - 1))};
+    });
+    return p;
+  };
+  const sessions = (n, every) => Array.from({length:n}, (_, i) => ({t: now - i*every}));
+  return [
+    {id:"d1", name:"Mia", updated: now - day, data:{
+      tl:2, progress:levels(2), linesDone:doneSteps([4,2,0,0,1]), log:sessions(2, 3*day)}},
+    {id:"d2", name:"Lena", updated: now, data:{
+      tl:1, progress:levels(0), linesDone:doneSteps([1,0,0,0,0]), log:sessions(1, day)}},
+    {id:"d3", name:"Jonas", updated: now - 22*day, data:{
+      tl:3, progress:levels(3), linesDone:doneSteps([5,3,1,0,2]), log:[]}}
+  ];
+}
+
 function load(){
+  if(DEMO){ athletes = demoAthletes(); busy = false; render(); return; }
   busy = true; render();
   api("/api/coach/athletes", {token:coach.token})
     .then(r => { coach.name = r.coach; athletes = r.athletes; msg = ""; })
@@ -92,6 +127,7 @@ function signUp(){
   }).catch(e=>{ msg = e.message; render(); });
 }
 function claim(){
+  if(DEMO){ msg = "In der Demo-Ansicht lassen sich keine echten Kinder verbinden."; render(); return; }
   const el = document.getElementById("pcode");
   const code = (el.value||"").replace(/\D/g,"");
   if(code.length !== 6){ msg = "Der Code hat 6 Ziffern."; render(); return; }
@@ -102,6 +138,7 @@ function claim(){
 }
 function remove(id, name){
   if(!confirm(name+" aus deiner Gruppe entfernen?")) return;
+  if(DEMO){ athletes = athletes.filter(a => a.id !== id); render(); return; }
   api("/api/coach/remove", {token:coach.token, athlete:id}).then(load);
 }
 
@@ -142,7 +179,7 @@ function athleteCard(a){
   return '<div class="card"><div class="row">'
     + '<span class="name">'+esc(a.name)+'</span>'
     + '<span class="badge">Level '+tl+'</span>'
-    + (stale ? '<span class="badge warnb">seit '+ago(a.updated)+' nichts</span>'
+    + (stale ? '<span class="badge warnb">'+ago(a.updated)+' nichts gemacht</span>'
              : '<span class="badge quiet">'+week+'× diese Woche</span>')
     + '<button class="mini" style="margin-left:auto" onclick="remove(\''+a.id+'\',\''+esc(a.name)+'\')">entfernen</button>'
     + '</div>'
@@ -175,8 +212,14 @@ function render(){
     app.innerHTML = h; return;
   }
 
-  h += '<p class="sub">Hallo '+esc(coach.name)+' · '+athletes.length+' Athlet'
-    + (athletes.length===1?'':'en')+'</p>';
+  h += DEMO
+    ? '<p class="sub">Beispiel-Ansicht mit erfundenen Turnern</p>'
+      + '<div class="hint" style="margin-bottom:12px">Das hier ist eine Vorschau: '
+      + 'Mia, Lena und Jonas gibt es nicht. So sieht die Ansicht aus, wenn Kinder '
+      + 'wirklich verbunden sind – jedes Kind erzeugt dafür in seiner App einen '
+      + 'sechsstelligen Code und liest ihn dir vor.</div>'
+    : '<p class="sub">Hallo '+esc(coach.name)+' · '+athletes.length+' Athlet'
+      + (athletes.length===1?'':'en')+'</p>';
   h += '<div class="card"><div class="row">'
     + '<input id="pcode" inputmode="numeric" maxlength="6" placeholder="Code vom Kind (6 Ziffern)" '
     + 'onkeydown="if(event.key===\'Enter\')claim()">'
@@ -195,7 +238,7 @@ function render(){
   }
   h += '<div style="text-align:center;margin-top:16px">'
     + '<button class="mini" onclick="load()">Aktualisieren</button> '
-    + '<button class="mini" onclick="logout()">Abmelden</button></div>';
+    + (DEMO ? '' : '<button class="mini" onclick="logout()">Abmelden</button>')+'</div>';
   app.innerHTML = h;
 }
 </script>
