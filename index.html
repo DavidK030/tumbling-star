@@ -238,12 +238,16 @@ const TRACKS = {
     {sec:30,note:"Ruhig und gerade halten"}]},
   /* Jumps used to be scattered across two days as a flat "3x". As a track they
      finally get a progression like everything else. */
+  /* Order follows cheer practice: height and timing first (straight, tuck), then
+     the jump most children reach earliest (split, needs the front-to-back
+     flexibility they usually have), and only then the toe touch, which needs
+     straddle height. The combination lives on day C, not here. */
   spruenge:{label:"Sprünge üben", stepAfter:2, levels:[
-    {name:"Strecksprung", note:"5x hoch, sauber landen"},
-    {name:"Tuck-Sprung", note:"5x, Knie hoch"},
-    {name:"Toe Touch", note:"5x, Grätsche seitlich"},
-    {name:"Spagatsprung", note:"je Seite 5x, ein Bein vor"},
-    {name:"Zwei Sprünge in Folge", note:"3x ohne Pause"}]},
+    {name:"Strecksprung", note:"5x hoch, Füße zusammen landen"},
+    {name:"Tuck-Sprung", note:"5x, Knie zur Brust"},
+    {name:"Spagatsprung", note:"je Seite 5x, ein Bein vor, eins zurück"},
+    {name:"Toe Touch", note:"5x, Grätsche seitlich, Beine gestreckt"},
+    {name:"Toe Touch mit Schwung", note:"5x, Arme hoch – runter – hoch"}]},
   bogengang:{label:"Bogengang-Linie", stepAfter:3, line:"lnBG", levels:[
     {name:"Brücke von der Erhöhung", note:"Sofa/Kasten, 5x"},
     {name:"Kick-over von der Erhöhung", note:"5 Versuche"},
@@ -340,6 +344,7 @@ const DAYS = [
       {name:"Kerze – abrollen – aufstehen", note:"5x", minTL:3}]},
     {title:"Sprünge", kind:"finish", items:[
       {track:"spruenge"},
+      {name:"Grätschsitz: Beine anheben", note:"3x 8 – macht den Toe Touch hoch"},
       {name:"Sprung auf ein Kissen", note:"hoch springen, weich landen, 5x"},
       {name:"Sprung mit halber Drehung", note:"5x, sauber landen", minTL:2},
       {name:"Anlauf + Strecksprung", note:"3x", minTL:3}]},
