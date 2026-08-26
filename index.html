@@ -1971,9 +1971,12 @@ function renderTimer(){
     switch: {num:timer.left, sub:"Seite wechseln", msg:"Jetzt die andere Seite!", ring:"#E7C463"},
     done:   {num:"⭐",       sub:"Geschafft!",      msg:"Tippen zum Schließen", ring:"var(--gold)"}
   }[p];
-  const btn = (label, fn) => '<button onclick="'+fn+'(event)" style="margin-top:14px;border:none;'
+  /* Keep the button in the layout when hidden, otherwise the centred timer
+     shifts down as soon as it disappears (e.g. while paused). */
+  const btn = (label, fn, hidden) => '<button onclick="'+fn+'(event)" style="margin-top:14px;border:none;'
     +'border-radius:999px;padding:10px 18px;font-weight:800;font-size:14px;'
-    +'background:var(--gold);color:var(--ink)">'+label+'</button>';
+    +'background:var(--gold);color:var(--ink)'
+    +(hidden ? ';visibility:hidden;pointer-events:none' : '')+'">'+label+'</button>';
   if(timer.paused){ face.num = "⏸"; face.sub = face.sub; face.msg = "Pause – tippen und weiter geht's"; }
   el.innerHTML =
     '<button onclick="stopTimer(event)" style="position:absolute;top:calc(14px + env(safe-area-inset-top));'
@@ -1984,7 +1987,7 @@ function renderTimer(){
     +'<div style="font-size:14px;opacity:.8">'+face.sub+'</div></div></div>'
     +'<div style="color:#fff;margin-top:18px;font-size:15px;font-weight:700">'+face.msg+'</div>'
     + (p==="done" ? btn('🔁 Nochmal', 'restartTimer')
-      : timer.paused ? '' : btn('+10 Sek.', 'addTime'));
+      : btn('+10 Sek.', 'addTime', timer.paused));
 }
 
 function saveName(){
