@@ -591,9 +591,13 @@ function applyDecisions(me, r){
     if(d.ok && !store.linesDone[step]){ store.linesDone[step] = true; changed = true; }
     if(!d.ok && store.linesDone[step]){ delete store.linesDone[step]; changed = true; }
     const name = stepName(step);
+    /* A "not yet" is the moment a child is most likely to give up, so it is
+       phrased as progress, never as a rejection. */
     note = d.ok
-      ? "🏅 " + d.by + " hat „" + name + "“ freigegeben!" + (d.note ? " – " + d.note : "")
-      : "Ü " + d.by + ": „" + name + "“ noch mal üben." + (d.note ? " – " + d.note : "");
+      ? "🏅 " + d.by + " hat „" + name + "“ freigegeben! "
+        + (d.note || "Stark gemacht!")
+      : "💪 " + d.by + " hat dein Video von „" + name + "“ gesehen: "
+        + (d.note || "Übe noch ein bisschen weiter – du bist auf einem guten Weg!");
   });
   if(changed) saveStore();
   if(note){ sendMsg = note; }
@@ -2192,7 +2196,7 @@ function render(){
         + '<span>'+esc(me.name)+'</span><span style="color:var(--sub)">▾</span></button>'
       : '<span></span>')
     + '<button class="who" onclick="showHelp(tab)" aria-label="Hilfe">? Hilfe</button></div>';
-  h += '<h1>⭐ Tumbling-Star</h1><p class="sub">Dein Weg zum Bogengang – Stufe für Stufe</p>';
+  h += '<h1>⭐ Tumbling-Star</h1><p class="sub">Dein Turn-Training für zuhause – Stufe für Stufe</p>';
   h += '<div class="tabs">'
     +'<button class="tab'+(tab==="training"?' on':'')+'" onclick="setTab(\'training\')">🏋️ Training</button>'
     +'<button class="tab'+(tab==="tracker"?' on':'')+'" onclick="setTab(\'tracker\')">⭐ Sterne</button>'
