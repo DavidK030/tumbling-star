@@ -13,3 +13,4 @@ www/
 ios/
 !ios/App/App/Assets.xcassets
 DerivedData/
+server/videos/

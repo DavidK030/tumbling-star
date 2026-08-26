@@ -59,6 +59,7 @@ const DEMO = new URLSearchParams(location.search).has("demo");
 let coach = null;          // {token, name}
 try { coach = JSON.parse(localStorage.getItem(TKEY) || "null"); } catch(e) {}
 let athletes = [], D = null, busy = false, msg = "";
+let planFor = null, planPick = {};      // athlete id whose homework is being put together
 
 const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const api = (path, body) => fetch(path, {method:"POST",
@@ -95,9 +96,14 @@ function demoAthletes(){
     return p;
   };
   const sessions = (n, every) => Array.from({length:n}, (_, i) => ({t: now - i*every}));
+  const plan = (byName, note, items, at) => ({by:byName, at, note, items});
   return [
-    {id:"d1", name:"Mia", updated: now - day, data:{
-      tl:2, progress:levels(2), linesDone:doneSteps([4,2,0,0,1]), log:sessions(2, 3*day)}},
+    {id:"d1", name:"Mia", updated: now - day, videos:[{step:"bg5", created: now - day, ticket:"demo"}], data:{
+      tl:2, progress:levels(2), linesDone:doneSteps([4,2,0,0,1]), log:sessions(2, 3*day),
+      assignDone:{"tr:bruecke":true},
+      assignAt: now - 2*day}, assignment: plan("Du", "Diese Woche jeden Tag kurz die Brücke!",
+        [{key:"tr:bruecke", label:"Brücke halten – 20 Sek."},
+         {key:"ln:bg2", label:"Kick-over von der Erhöhung"}], now - 2*day)},
     {id:"d2", name:"Lena", updated: now, data:{
       tl:1, progress:levels(0), linesDone:doneSteps([1,0,0,0,0]), log:sessions(1, day)}},
     {id:"d3", name:"Jonas", updated: now - 22*day, data:{
@@ -136,6 +142,18 @@ function claim(){
     el.value = ""; load();
   }).catch(e=>{ msg = e.message; render(); });
 }
+/* The decision is the point of the whole view: approve and the step is ticked
+   off in the child's app, reject and it goes back to practice. Either way the
+   clip is deleted server-side. */
+function decide(athlete, step, ok, name){
+  if(DEMO){ msg = "In der Beispiel-Ansicht wird nichts wirklich freigegeben."; render(); return; }
+  const note = prompt(ok ? "Kurzes Lob (optional):" : "Was soll sie/er noch üben? (optional)", "");
+  if(note === null) return;
+  api("/api/coach/decide", {token:coach.token, athlete, step, ok, note})
+    .then(()=>{ msg = name+": "+(ok ? "freigegeben." : "zurück zum Üben."); load(); })
+    .catch(e=>{ msg = e.message; render(); });
+}
+
 function remove(id, name){
   if(!confirm(name+" aus deiner Gruppe entfernen?")) return;
   if(DEMO){ athletes = athletes.filter(a => a.id !== id); render(); return; }
@@ -168,7 +186,16 @@ function athleteCard(a){
     const cur = ln.steps.find(st => !(s.linesDone||{})[st.id]);
     return {name:ln.name, done, total:ln.steps.length, cur, waiting: cur && cur.cat === "verein"};
   });
+  /* Anything the coach has to rule on: a clip that was sent, plus club steps the
+     child has reached. Hanging this on the videos matters — a child may send a
+     clip for a step that is not the current one, and it must not vanish. */
   const waiting = lines.filter(l => l.waiting);
+  const judge = [], seen = {};
+  (a.videos||[]).forEach(v => {
+    const st = stepById(v.step);
+    if(st && !seen[st.id]){ seen[st.id] = true; judge.push(st); }
+  });
+  waiting.forEach(l => { if(!seen[l.cur.id]){ seen[l.cur.id] = true; judge.push(l.cur); } });
   const steps = (D.TRACK_KEYS||[]).map(k=>{
     const tr = D.TRACKS[k], p = (s.progress||{})[k] || {lvl:0};
     const def = tr.levels[Math.min(p.lvl, tr.levels.length-1)];
@@ -185,16 +212,132 @@ function athleteCard(a){
     + '</div>'
     + '<div class="meta" style="margin-top:6px">Zuletzt geturnt: '+ago(a.updated)
     + ' · Schwerpunkt: '+esc((D.TL_FOCUS||{})[tl]||"–")+'</div>'
-    + (waiting.length
+    + (judge.length
       ? '<div class="hint" style="margin-top:10px"><b>Wartet auf dein Okay:</b> '
-        + waiting.map(l=>esc(l.cur.name)).join(", ")+'</div>' : '')
+        + judge.map(st=>esc(st.name)).join(", ")+'</div>' : '')
+    + judge.map(st => judgeHTML(a, st)).join("")
     + '<div class="lbl" style="margin:12px 2px 6px">Skill-Linien</div>'
     + lines.map(l =>
         '<div class="row" style="margin-bottom:6px"><span style="font-size:12.5px;min-width:120px">'
         + esc(l.name)+'</span><div class="bar"><div class="fill" style="width:'
         + (l.done/l.total*100)+'%"></div></div><span class="meta">'+l.done+'/'+l.total+'</span></div>').join("")
     + '<div class="lbl" style="margin:12px 2px 6px">Übungsstufen</div>'
-    + '<div class="grid">'+steps+'</div></div>';
+    + '<div class="grid">'+steps+'</div>'
+    + planHTML(a) + '</div>';
+}
+
+/* Shown per step a child is waiting on: their clip if they sent one, and the
+   two buttons that end the wait. */
+/* The catalogue a coach picks from is the app's own: hold exercises at the
+   child's current level, plus the next step of every skill line. */
+function planCatalog(a){
+  const s = a.data || {};
+  const out = [];
+  (D.TRACK_KEYS||[]).forEach(k=>{
+    const tr = D.TRACKS[k], p = (s.progress||{})[k] || {lvl:0};
+    const def = tr.levels[Math.min(p.lvl, tr.levels.length-1)];
+    out.push({key:"tr:"+k, label: tr.label+" – "+(def.sec ? def.sec+" Sek." : (def.note||def.name||""))});
+  });
+  (D.LINES||[]).forEach(ln=>{
+    const cur = ln.steps.find(st => !(s.linesDone||{})[st.id]);
+    if(cur) out.push({key:"ln:"+cur.id, label: cur.name});
+  });
+  return out;
+}
+function openPlan(id){
+  planFor = planFor === id ? null : id;
+  planPick = {};
+  const a = athletes.find(x=>x.id===id);
+  /* Only the keys are remembered; the wording always comes from the catalogue,
+     so a changed plan never carries yesterday's hold time. */
+  if(planFor && a && a.assignment) a.assignment.items.forEach(i => planPick[i.key] = true);
+  render();
+}
+function togglePick(key){
+  if(planPick[key]) delete planPick[key]; else planPick[key] = true;
+  render();
+}
+function sendPlan(id, name){
+  if(DEMO){ msg = "In der Beispiel-Ansicht wird nichts wirklich verschickt."; render(); return; }
+  const a = athletes.find(x => x.id === id);
+  const items = planCatalog(a).filter(i => planPick[i.key]);
+  const note = (document.getElementById("plannote")||{}).value || "";
+  api("/api/coach/assign", {token:coach.token, athlete:id, items, note})
+    .then(()=>{ msg = items.length ? name+" hat das Training bekommen." : "Training gelöscht.";
+                planFor = null; planPick = {}; load(); })
+    .catch(e=>{ msg = e.message; render(); });
+}
+
+function stepById(id){
+  for(const ln of (D.LINES||[])){ const st = ln.steps.find(s => s.id === id); if(st) return st; }
+  return null;
+}
+
+function judgeHTML(a, step){
+  const vid = (a.videos||[]).find(v => v.step === step.id);
+  const player = DEMO
+    ? '<div style="background:#EFECE4;border-radius:12px;padding:26px 12px;text-align:center;'
+      + 'color:var(--sub);font-size:13px">Hier läuft das Video, das '+esc(a.name)+' aufgenommen hat</div>'
+    : vid
+      ? '<video src="/api/video?t='+encodeURIComponent(vid.ticket)+'" controls playsinline '
+        + 'preload="metadata" style="width:100%;max-height:46vh;border-radius:12px;'
+        + 'background:#000;object-fit:contain"></video>'
+      : '<div class="meta">Kein Video – gib den Schritt frei, wenn du ihn im Training gesehen hast.</div>';
+  const btn = (label, ok, bg) => '<button class="mini" style="background:'+bg+';color:#fff;padding:9px 14px" '
+    + 'onclick="decide(\''+a.id+'\',\''+step.id+'\','+ok+',\''+esc(a.name)+'\')">'+label+'</button>';
+  return '<div style="margin-top:10px;border:1.5px solid var(--line);border-radius:14px;padding:11px">'
+    + '<div style="font-weight:800;font-size:14px;margin-bottom:8px">'+esc(step.name)+'</div>'
+    + player
+    + '<div class="row" style="margin-top:9px;gap:8px">'
+    + btn('Freigeben', true, '#4C9A5F') + btn('Noch üben', false, 'var(--warn)')
+    + '<span class="meta" style="margin-left:auto">'
+    + (DEMO ? 'gestern aufgenommen' : vid ? 'geschickt: '+ago(vid.created) : 'im Training gesehen')
+    + '</span></div>'
+    + '</div>';
+}
+
+/* Homework the coach set, and the editor to change it. Deliberately a plain
+   list of the child's own exercises: nothing new to learn, and the child sees
+   the same wording in their app. */
+function planHTML(a){
+  const cur = a.assignment;
+  const done = (a.data||{}).assignDone || {};
+  const open = planFor === a.id;
+  let h = '<div class="lbl" style="margin:14px 2px 6px">Training für zuhause</div>';
+
+  if(cur && !open){
+    h += '<div style="border:1.5px solid var(--line);border-radius:14px;padding:11px">'
+      + (cur.note ? '<div style="font-size:13px;margin-bottom:7px">„'+esc(cur.note)+'“</div>' : '')
+      + cur.items.map(i => '<div class="row" style="font-size:13px;margin-bottom:4px">'
+          + '<span>'+(done[i.key] ? '✅' : '⬜')+'</span><span>'+esc(i.label)+'</span></div>').join("")
+      + '<div class="meta" style="margin-top:7px">gestellt '+ago(cur.at)+' · '
+      + cur.items.filter(i=>done[i.key]).length+'/'+cur.items.length+' erledigt</div>'
+      + '<button class="mini" style="margin-top:9px" onclick="openPlan(\''+a.id+'\')">ändern</button></div>';
+    return h;
+  }
+  if(!open){
+    return h + '<div style="border:1.5px dashed var(--line);border-radius:14px;padding:11px">'
+      + '<div class="meta">Noch nichts gestellt.</div>'
+      + '<button class="mini" style="margin-top:8px" onclick="openPlan(\''+a.id+'\')">'
+      + 'Training zusammenstellen</button></div>';
+  }
+
+  const cat = planCatalog(a);
+  h += '<div style="border:1.5px solid var(--gold);border-radius:14px;padding:11px">'
+    + '<div class="meta" style="margin-bottom:8px">Such aus, was '+esc(a.name)
+    + ' zuhause üben soll. Sie sieht es in ihrer App zum Abhaken.</div>'
+    + cat.map(i => '<button class="chip" style="width:100%;text-align:left;margin-bottom:5px;'
+        + 'border-color:'+(planPick[i.key] ? 'var(--gold)' : 'var(--line)')+'" '
+        + 'onclick="togglePick(\''+i.key+'\')">'
+        + (planPick[i.key] ? '✅ ' : '⬜ ')+esc(i.label)+'</button>').join("")
+    + '<input id="plannote" maxlength="200" placeholder="Ein Satz dazu (optional)" '
+    + 'style="margin-top:8px" value="'+esc(cur && cur.note || "")+'">'
+    + '<div class="row" style="margin-top:9px;gap:8px">'
+    + '<button class="mini" style="background:var(--ink);color:var(--goldSoft);padding:10px 15px" '
+    + 'onclick="sendPlan(\''+a.id+'\',\''+esc(a.name)+'\')">'
+    + (Object.keys(planPick).length ? 'An '+esc(a.name)+' schicken' : 'Training löschen')+'</button>'
+    + '<button class="mini" onclick="openPlan(\''+a.id+'\')">abbrechen</button></div></div>';
+  return h;
 }
 
 function render(){

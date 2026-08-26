@@ -483,7 +483,10 @@ function saveStore(){ saveProfiles(); }
   let d = null;
   try { d = JSON.parse(localStorage.getItem(PKEY) || "null"); } catch(e) {}
   if(d && Array.isArray(d.profiles) && d.profiles.length){
-    profiles = d.profiles.map(p => ({id:p.id, name:p.name, emoji:p.emoji, data:normalize(p.data)}));
+    /* Keep every field, not just the four known ones: the coach link, the last
+       sync and pending video steps live here too and used to be dropped on
+       every start, which silently switched syncing off. */
+    profiles = d.profiles.map(p => Object.assign({}, p, {data:normalize(p.data)}));
     activeId = profiles.some(p=>p.id===d.active) ? d.active : profiles[0].id;
   } else {
     let legacy = null;                   // keep the progress made before profiles existed
@@ -544,6 +547,7 @@ function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
 const SRV_URL = "";
 const SRV = SRV_URL || location.origin;
 let pairCode = null, syncMsg = "";
+let sending = null, sendMsg = "", consentFor = null;
 function coachOn(){ return !!activeProfile().coach; }
 function srv(path, body){
   return fetch(SRV+path, {method:"POST", headers:{"content-type":"application/json"},
@@ -569,9 +573,127 @@ function syncNow(){
   const me = activeProfile();
   if(!me.coach) return Promise.resolve();
   return srv("/api/sync", {id:me.id, name:me.name, data:store})
-    .then(()=>{ me.lastSync = Date.now(); saveProfiles(); })
+    .then(r=>{ me.lastSync = Date.now(); saveProfiles(); applyDecisions(me, r); })
     .catch(()=>{});                    // offline is normal, try again next time
 }
+/* What the coach decided about a step the child asked for. An approval ticks
+   the step off here as well, so app and coach view never disagree. */
+function applyDecisions(me, r){
+  let changed = applyAssignment(me, r && r.assignment);
+  const dec = (r && r.decisions) || {};
+  me.seenDecisions = me.seenDecisions || {};
+  me.pending = (r && r.pending) || [];
+  let note = "";
+  Object.keys(dec).forEach(step=>{
+    const d = dec[step];
+    if(me.seenDecisions[step] === d.at) return;      // already shown once
+    me.seenDecisions[step] = d.at;
+    if(d.ok && !store.linesDone[step]){ store.linesDone[step] = true; changed = true; }
+    if(!d.ok && store.linesDone[step]){ delete store.linesDone[step]; changed = true; }
+    const name = stepName(step);
+    note = d.ok
+      ? "🏅 " + d.by + " hat „" + name + "“ freigegeben!" + (d.note ? " – " + d.note : "")
+      : "Ü " + d.by + ": „" + name + "“ noch mal üben." + (d.note ? " – " + d.note : "");
+  });
+  if(changed) saveStore();
+  if(note){ sendMsg = note; }
+  if(changed || note) { saveProfiles(); render(); }
+}
+/* Homework from the coach. A newly set plan starts with empty ticks, so the
+   child never sees last week's checkmarks on this week's task. */
+function applyAssignment(me, plan){
+  const before = me.assignment && me.assignment.at;
+  me.assignment = plan || null;
+  if(plan && store.assignAt !== plan.at){
+    store.assignAt = plan.at;
+    store.assignDone = {};
+    saveStore();
+  }
+  if(plan && me.seenAssign !== plan.at){
+    me.seenAssign = plan.at;
+    sendMsg = "📋 " + plan.by + " hat dir ein Training geschickt!"
+      + (plan.note ? " – " + plan.note : "");
+  }
+  return before !== (plan && plan.at);
+}
+function toggleAssign(key){
+  store.assignDone = store.assignDone || {};
+  if(store.assignDone[key]) delete store.assignDone[key]; else store.assignDone[key] = true;
+  saveStore(); render();
+  setTimeout(syncNow, 0);              // let the coach see it straight away
+}
+function assignmentHTML(){
+  const plan = activeProfile().assignment;
+  if(!plan || !plan.items || !plan.items.length) return '';
+  const done = store.assignDone || {};
+  const fertig = plan.items.filter(i=>done[i.key]).length;
+  return '<div class="card" style="border:2px solid var(--gold);margin-bottom:14px">'
+    + '<div style="font-weight:900;font-size:16px">📋 Von '+esc(plan.by)+' für dich</div>'
+    + (plan.note ? '<div style="font-size:13px;color:var(--sub);margin-top:3px;line-height:1.45">„'
+        + esc(plan.note)+'“</div>' : '')
+    + plan.items.map(i => '<button class="skillrow" style="width:100%" onclick="toggleAssign(\''
+        + i.key+'\')"><span class="circle" style="border:2.5px solid var(--gold)'
+        + (done[i.key] ? ';background:#4C9A5F;border-color:#4C9A5F' : '')+'">'
+        + (done[i.key] ? '✓' : '')+'</span><span style="flex:1"><span class="iname" style="'
+        + (done[i.key] ? 'text-decoration:line-through;opacity:.6' : '')+'">'+esc(i.label)
+        + '</span></span></button>').join("")
+    + '<div style="font-size:12.5px;color:var(--sub);margin-top:8px">'
+    + (fertig === plan.items.length ? 'Alles geschafft! 🎉 Deine Trainerin sieht das.'
+                                    : fertig+' von '+plan.items.length+' erledigt')+'</div></div>';
+}
+
+function stepName(id){
+  for(const ln of LINES){ const st = ln.steps.find(s=>s.id===id); if(st) return st.name; }
+  return id;
+}
+function pendingStep(id){ return (activeProfile().pending||[]).indexOf(id) >= 0; }
+function clearSendMsg(){ sendMsg = ""; render(); }
+
+/* Sending a video of a child is a different order of thing than storing a first
+   name, so it is asked for once, in plain words, and only for club steps. */
+function askVideo(stepId, ev){
+  if(ev) ev.stopPropagation();
+  if(!coachOn()){
+    sendMsg = "Dafür musst du erst mit deinem Trainer verbunden sein.";
+    render(); return;
+  }
+  if(!activeProfile().videoOk){ consentFor = stepId; render(); return; }
+  pickVideo(stepId);
+}
+function consentOk(){
+  const step = consentFor;
+  activeProfile().videoOk = Date.now(); saveProfiles();
+  consentFor = null;
+  pickVideo(step);
+}
+function consentNo(){ consentFor = null; render(); }
+
+function pickVideo(stepId){
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "video/*"; inp.capture = "environment";
+  inp.onchange = () => { if(inp.files && inp.files[0]) sendVideo(stepId, inp.files[0]); };
+  inp.click();
+}
+function sendVideo(stepId, file){
+  const me = activeProfile();
+  const type = file.type === "video/quicktime" ? "video/quicktime" : "video/mp4";
+  if(file.size > 60*1024*1024){
+    sendMsg = "Das Video ist zu lang. Nimm eine kurze Aufnahme von der Übung auf.";
+    render(); return;
+  }
+  sending = stepId; sendMsg = ""; render();
+  fetch(SRV+"/api/video?athlete="+encodeURIComponent(me.id)+"&step="+encodeURIComponent(stepId),
+        {method:"POST", headers:{"content-type":type}, body:file})
+    .then(r => r.json().then(j => r.ok ? j : Promise.reject(new Error(j.error||"Fehler"))))
+    .then(()=>{
+      me.pending = (me.pending||[]).filter(s=>s!==stepId).concat(stepId);
+      saveProfiles();
+      sendMsg = "Video ist beim Trainer. Du bekommst Bescheid, sobald er es angeschaut hat.";
+    })
+    .catch(e => { sendMsg = "Das hat nicht geklappt: "+e.message; })
+    .finally(()=>{ sending = null; render(); });
+}
+
 function disconnectCoach(){
   const me = activeProfile();
   if(!confirm("Verbindung trennen und alle Daten beim Trainer löschen?")) return;
@@ -1493,6 +1615,47 @@ function showLineStep(lineId, stepId, ev){
   const st = ln && ln.steps.find(s=>s.id===stepId);
   if(st){ demoShown = st.demo; demoSkill = null; render(); }
 }
+/* A club step is the one thing a child cannot tick off honestly on their own,
+   so this is where a short clip goes to the coach. */
+function videoRowHTML(st){
+  const box = inner => '<div style="margin:0 14px 10px 50px;background:var(--bg);'
+    + 'border:1.5px dashed var(--line);border-radius:12px;padding:9px 11px;'
+    + 'font-size:12.5px;line-height:1.45">'+inner+'</div>';
+  if(!coachOn()){
+    return box('Wenn du mit deinem Trainer verbunden bist, kannst du ihm hier ein '
+      + 'Video schicken – dann kann er den Schritt freigeben.');
+  }
+  if(sending === st.id) return box('Video wird geschickt …');
+  if(pendingStep(st.id)){
+    return box('🎥 <b>Video ist beim Trainer.</b> Du bekommst Bescheid, sobald er es '
+      + 'angeschaut hat.<br><button class="reset" onclick="askVideo(\''+st.id+'\',event)">'
+      + 'neues Video aufnehmen</button>');
+  }
+  return box('<button class="reset" style="font-weight:800" onclick="askVideo(\''+st.id+'\',event)">'
+    + '🎥 Video aufnehmen und dem Trainer schicken</button>');
+}
+
+/* Asked once per child, in words a parent can act on. */
+function consentHTML(){
+  const st = stepName(consentFor);
+  return '<div class="overlay"><div class="pcard" style="text-align:left">'
+    + '<div style="font-weight:900;font-size:19px;text-align:center;margin-bottom:8px">'
+    + 'Kurz für deine Eltern</div>'
+    + '<div style="font-size:13.5px;line-height:1.55;color:var(--ink)">'
+    + 'Gleich nimmst du ein Video von „'+esc(st)+'“ auf und schickst es deinem Trainer.'
+    + '<ul style="padding-left:18px;margin:9px 0">'
+    + '<li>Nur der Trainer, mit dem du verbunden bist, kann es ansehen.</li>'
+    + '<li>Es wird gelöscht, sobald er entschieden hat – spätestens nach 14 Tagen.</li>'
+    + '<li>Filmt am besten nur dich und die Übung, niemanden sonst.</li>'
+    + '<li>Deine Eltern sollen einverstanden sein. Frag sie kurz!</li></ul>'
+    + 'Du kannst jederzeit alles löschen: unter „Mit Trainer verbunden“ auf <b>trennen</b>.'
+    + '</div>'
+    + '<button class="bigbtn" onclick="consentOk()">Meine Eltern sind einverstanden</button>'
+    + '<div style="text-align:center;margin-top:8px">'
+    + '<button class="reset" onclick="consentNo()">Lieber nicht</button></div>'
+    + '</div></div>';
+}
+
 function lineCurrent(ln){ return ln.steps.find(s=>!store.linesDone[s.id]) || null; }
 function toggleSkill(id){
   if(store.levels[id]){ delete store.levels[id]; }
@@ -1555,6 +1718,7 @@ function trainingHTML(){
       +'<span style="font-size:24px">🏋️</span>'
       +'<div style="flex:1"><div style="font-weight:900;font-size:14.5px">Trainings-Level '+store.tl+(store.tl>=TL_MAX?' (Maximum!)':'')+'</div>'
       +'<div style="font-size:12px;color:var(--sub);line-height:1.35">'+esc(TL_FOCUS[store.tl])+'</div></div></div>';
+    h += assignmentHTML();
     h += '<p class="lbl">Was turnst du heute, '+esc(activeProfile().name)+'?</p>';
     DAYS.forEach(d=>{
       const u = Math.min(store.unit[d.id]||0, TL_NEED);
@@ -1768,6 +1932,7 @@ function levelHTML(){
             +'<b>⭐ Daran arbeitest du:</b> '+esc(s2.info)
             +(s2.cat==="verein"?' <b>Nur im Verein!</b>':'')+'</div>';
         }
+        if(s2.cat==="verein" && !on) h += videoRowHTML(s2);
       });
     }
     h += '</div>';
@@ -1864,6 +2029,7 @@ function stufenHTML(){
 
 function overlaysHTML(){
   let h='';
+  if(consentFor) h += consentHTML();
   if(pairCode){
     h += '<div class="overlay" onclick="closeCode()"><div class="pcard" onclick="event.stopPropagation()">'
       + '<div style="font-weight:900;font-size:19px;text-align:center">Sag deinem Trainer diesen Code</div>'
@@ -2032,6 +2198,11 @@ function render(){
     +'<button class="tab'+(tab==="tracker"?' on':'')+'" onclick="setTab(\'tracker\')">⭐ Sterne</button>'
     +'<button class="tab'+(tab==="level"?' on':'')+'" onclick="setTab(\'level\')">🤸 Level</button>'
     +'<button class="tab'+(tab==="ziele"?' on':'')+'" onclick="setTab(\'ziele\')">🏆 Ziele</button></div>';
+  /* Coach feedback can arrive during any tab, so it is shown above the content
+     rather than buried in the skill lines. */
+  if(sendMsg) h += '<div style="background:#FFF6DB;border:2px solid var(--gold);border-radius:14px;'
+    + 'padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.5">'+esc(sendMsg)
+    + ' <button class="reset" onclick="clearSendMsg()">ok</button></div>';
   if(tab==="training") h += trainingHTML();
   else if(tab==="tracker") h += trackerHTML();
   else if(tab==="level") h += levelHTML();
