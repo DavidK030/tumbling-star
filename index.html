@@ -556,6 +556,28 @@ function disconnectCoach(){
       syncMsg = "Getrennt – deine Daten sind gelöscht."; saveProfiles(); render(); });
 }
 function closeCode(){ pairCode = null; render(); }
+function coachCardHTML(){
+  const me = activeProfile();
+  if(coachOn()){
+    return '<div class="card" style="margin-top:16px;text-align:center">'
+      + '<div style="font-weight:900;font-size:15px">🔗 Mit deinem Trainer verbunden</div>'
+      + '<div style="font-size:12.5px;color:var(--sub);margin-top:4px">'
+      + (me.lastSync ? 'Zuletzt übermittelt: '+new Date(me.lastSync).toLocaleDateString("de-DE")
+                     : 'Nach dem nächsten Training sieht er deinen Fortschritt.')+'</div>'
+      + '<div style="margin-top:8px"><button class="reset" onclick="connectCoach()">neuen Code zeigen</button>'
+      + '<span style="color:var(--sub)"> · </span>'
+      + '<button class="reset" onclick="disconnectCoach()">trennen</button></div></div>';
+  }
+  return '<div class="card" style="margin-top:16px;text-align:center">'
+    + '<div style="font-size:26px">🔗</div>'
+    + '<div style="font-weight:900;font-size:15px">Trainer verbinden</div>'
+    + '<div style="font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.45">'
+    + 'Dein Trainer kann sehen, woran du zuhause arbeitest – und dir Schritte freigeben.</div>'
+    + '<button class="bigbtn" style="margin-top:10px" onclick="connectCoach()">Code anzeigen</button>'
+    + (syncMsg ? '<div style="font-size:12px;color:var(--sub);margin-top:8px;line-height:1.45">'
+        + esc(syncMsg)+'</div>' : '')
+    + '</div>';
+}
 
 function switchProfile(id){
   if(id === activeId){ profileMenu = false; render(); return; }
@@ -1635,15 +1657,7 @@ function trackerHTML(){
   h += '<div style="text-align:center;margin-top:10px">'
     +'<button class="reset" onclick="'+(profiles.length>1?'toggleProfileMenu()':'addProfile()')+'">'
     +(profiles.length>1 ? '👥 Turner wechseln' : '👥 Noch ein Kind übt mit')+'</button></div>';
-  h += '<div style="text-align:center;margin-top:10px">'
-    + (coachOn()
-      ? '<span style="font-size:12.5px;color:var(--sub)">🔗 Mit Trainer verbunden</span>'
-        + '<span style="color:var(--sub)"> · </span>'
-        + '<button class="reset" onclick="disconnectCoach()">trennen</button>'
-      : '<button class="reset" onclick="connectCoach()">🔗 Mit Trainer verbinden</button>')
-    + '</div>';
-  if(syncMsg) h += '<div style="font-size:12px;color:var(--sub);text-align:center;margin-top:6px">'
-    + esc(syncMsg)+'</div>';
+  h += coachCardHTML();
   h += '<div style="text-align:center;margin-top:10px">'
     + (confirmReset
       ? '<button class="reset2" onclick="resetAll()">Wirklich alles löschen (Level, Ziele &amp; Stufen)?</button>'
