@@ -34,6 +34,11 @@
 /* The native app has no browser chrome, so the page itself must be the
    scroll container and reach full height. */
 html{height:100%; -webkit-text-size-adjust:100%}
+/* Opaque strip behind the status bar: without a browser bar above it, the
+   scrolling page would slide under the clock and the notch. Below overlays,
+   which cover the full screen on purpose. */
+body::before{content:""; position:fixed; top:0; left:0; right:0; z-index:40;
+  height:env(safe-area-inset-top); background:var(--bg)}
 body{
   margin:0; min-height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;
   background:var(--bg); color:var(--ink);
