@@ -29,6 +29,7 @@ button{font-family:inherit; cursor:pointer}
   font-size:12.5px; font-weight:800; color:var(--ink)}
 input{width:100%; border:1.5px solid var(--line); border-radius:12px; padding:11px 12px;
   font-family:inherit; font-size:16px; font-weight:700; background:var(--bg); color:var(--ink)}
+input.slim{padding:7px 10px; font-weight:600; border-radius:10px}
 .lbl{font-size:14px; font-weight:800; margin:16px 2px 8px; color:var(--sub)}
 .row{display:flex; align-items:center; gap:10px}
 .name{font-weight:900; font-size:17px}
@@ -366,12 +367,14 @@ function planHTML(a){
         + 'border-color:'+(planPick[i.key] ? 'var(--gold)' : 'var(--line)')+'" '
         + 'onclick="togglePick(\''+i.key+'\')">'
         + (planPick[i.key] ? '✅ ' : '⬜ ')+esc(i.label)+'</button>').join("")
-    + '<div class="row" style="margin-top:8px;gap:7px">'
-    + '<input id="freiIn" maxlength="80" placeholder="Eigene Übung, z. B. Seilspringen 3 Min." '
+    /* Compact, but the font stays at 16px: anything smaller makes iOS zoom in
+       the moment the coach taps the field. */
+    + '<div class="row" style="margin-top:8px;gap:6px">'
+    + '<input id="freiIn" maxlength="80" class="slim" placeholder="Eigene Übung, z. B. Seilspringen 3 Min." '
     + 'onkeydown="if(event.key===\'Enter\')addFree()">'
-    + '<button class="mini" style="padding:11px 14px" onclick="addFree()">+</button></div>'
-    + '<input id="plannote" maxlength="200" placeholder="Ein Satz dazu (optional)" '
-    + 'style="margin-top:8px" value="'+esc(cur && cur.note || "")+'">'
+    + '<button class="mini" style="padding:8px 13px" onclick="addFree()">+</button></div>'
+    + '<input id="plannote" maxlength="200" class="slim" placeholder="Ein Satz dazu (optional)" '
+    + 'style="margin-top:7px" value="'+esc(cur && cur.note || "")+'">'
     + '<div class="row" style="margin-top:9px;gap:8px">'
     + '<button class="mini" style="background:var(--ink);color:var(--goldSoft);padding:10px 15px" '
     + 'onclick="sendPlan(\''+a.id+'\',\''+esc(a.name)+'\')">'
