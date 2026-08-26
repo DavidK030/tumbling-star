@@ -222,6 +222,28 @@ const TRACKS = {
     {sec:30,note:"Kissen unterm Knie als Hilfe erlaubt"},
     {sec:35,note:"Kissen unterm Knie als Hilfe erlaubt"},
     {sec:40,note:"Kissen unterm Knie als Hilfe erlaubt"}]},
+  /* Balance had no home in the app at all: everything was flexibility, strength
+     or tumbling. Held on one leg, it also builds the ankle stability the jumps
+     land on. */
+  waage:{label:"Standwaage", stepAfter:2, sides:true, levels:[
+    {sec:10,note:"Blick geradeaus"},{sec:15,note:"Blick geradeaus"},
+    {sec:20,note:"Bein waagerecht"},{sec:25,note:"Bein waagerecht"},
+    {sec:30,note:"Bein waagerecht, ruhig stehen"}]},
+  einbein:{label:"Einbeinstand, Augen zu", stepAfter:2, sides:true, levels:[
+    {sec:10,note:"Augen zu"},{sec:15,note:"Augen zu"},{sec:20,note:"Augen zu"},
+    {sec:25,note:"Augen zu"},{sec:30,note:"Augen zu, Arme hoch"}]},
+  kerze:{label:"Kerze halten", stepAfter:2, levels:[
+    {sec:10,note:"Hände stützen den Rücken"},{sec:15,note:"Hände stützen den Rücken"},
+    {sec:20,note:"Beine ganz gestreckt"},{sec:25,note:"Beine ganz gestreckt"},
+    {sec:30,note:"Ruhig und gerade halten"}]},
+  /* Jumps used to be scattered across two days as a flat "3x". As a track they
+     finally get a progression like everything else. */
+  spruenge:{label:"Sprünge üben", stepAfter:2, levels:[
+    {name:"Strecksprung", note:"5x hoch, sauber landen"},
+    {name:"Tuck-Sprung", note:"5x, Knie hoch"},
+    {name:"Toe Touch", note:"5x, Grätsche seitlich"},
+    {name:"Spagatsprung", note:"je Seite 5x, ein Bein vor"},
+    {name:"Zwei Sprünge in Folge", note:"3x ohne Pause"}]},
   bogengang:{label:"Bogengang-Linie", stepAfter:3, line:"lnBG", levels:[
     {name:"Brücke von der Erhöhung", note:"Sofa/Kasten, 5x"},
     {name:"Kick-over von der Erhöhung", note:"5 Versuche"},
@@ -294,6 +316,37 @@ const DAYS = [
     {title:"Dehnen – lange halten!", kind:"stretch", items:[
       {track:"spagat"},{track:"bruecke"},
       {name:"Schulterdehnung an der Wand", sec:30}]}
+  ]},
+  /* The fourth day carries what the other three never covered: standing still
+     on one leg, and jumping and rolling with a progression instead of a flat
+     "3x". Everything here works on a carpet at home - the risky variants stay
+     in the skill lines, marked for the club. */
+  {id:"D", name:"Sprung- & Balance-Tag", emoji:"🦘", color:C.gold, tint:"#FFFFFF", sections:[
+    {title:"Aufwärmen", kind:"warm", items:[
+      {name:"Seilspringen oder Hopserlauf", note:"2 Minuten"},
+      {name:"Fußgelenke kreisen", note:"10x pro Seite"},
+      {name:"20 Strecksprünge"},
+      {name:"Armkreisen groß", note:"10x vor + zurück"}]},
+    {title:"Balance – ruhig stehen!", kind:"skill", items:[
+      {track:"waage"},
+      {track:"einbein"},
+      {name:"Zehenstand halten", note:"3x 15 Sek.", sec:15},
+      {name:"Auf einer Linie gehen", note:"10 Schritte vor + zurück"}]},
+    {title:"Rollen", kind:"skill", items:[
+      {track:"kerze"},
+      {name:"Rolle vorwärts", note:"5x, ohne Hände aufstehen"},
+      {name:"Rolle rückwärts", note:"5x auf weicher Unterlage"},
+      {name:"Rolle rückwärts in die Kerze", note:"3x", minTL:2},
+      {name:"Kerze – abrollen – aufstehen", note:"5x", minTL:3}]},
+    {title:"Sprünge", kind:"finish", items:[
+      {track:"spruenge"},
+      {name:"Sprung auf ein Kissen", note:"hoch springen, weich landen, 5x"},
+      {name:"Sprung mit halber Drehung", note:"5x, sauber landen", minTL:2},
+      {name:"Anlauf + Strecksprung", note:"3x", minTL:3}]},
+    {title:"Dehnen zum Schluss", kind:"stretch", items:[
+      {track:"spagat"},
+      {name:"Beinrückseite dehnen", sec:30, sides:true},
+      {name:"Schmetterling-Sitz", sec:30}]}
   ]}
 ];
 
@@ -418,6 +471,21 @@ const LINES = [
      info:"Verbindung aus Sprung und Salto – Level 5."},
     {id:"sa8", name:"Full (Salto mit 1 Twist)", cat:"verein", demo:"tuck",
      info:"Salto mit ganzer Schraube – das Tumbling-Maximum im CCVD (Level 5)!"}]},
+  /* Rolls were missing entirely, although they are what every floor routine is
+     stitched together with - and the safe way to bail out of a skill. */
+  {id:"lnRO", name:"Rollen-Linie", ziel:"Grundlage für alles", steps:[
+    {id:"ro1", name:"Rolle vorwärts", cat:"heim", demo:"rollevw",
+     info:"Kinn auf die Brust, rund wie ein Ball – und am Ende ohne Hände aufstehen."},
+    {id:"ro2", name:"Rolle rückwärts", cat:"heim", demo:"rollerw",
+     info:"Hände neben die Ohren, damit du dich abdrücken kannst. Erst auf einer weichen Unterlage."},
+    {id:"ro3", name:"Kerze halten", cat:"heim", demo:"tuckdrillcandle",
+     info:"Hüfte hoch, Hände stützen den Rücken. Je gerader du wirst, desto leichter geht sie."},
+    {id:"ro4", name:"Rolle rückwärts in die Kerze", cat:"heim", demo:"rollerw",
+     info:"Roll rückwärts und bleib oben in der Kerze stehen, statt weiterzurollen."},
+    {id:"ro5", name:"Sprungrolle", cat:"verein", demo:"rollevw",
+     info:"Erst abspringen, dann rollen. Nur im Verein mit Trainer und weicher Matte!"},
+    {id:"ro6", name:"Rolle rückwärts in den Handstand", cat:"verein", demo:"handstandabrollen",
+     info:"Aus der Rolle rückwärts nach oben in den Handstand drücken. Das braucht Hilfestellung."}]},
   {id:"lnVB", name:"Verbindungs-Linie", ziel:"CCVD Level 2–3", steps:[
     {id:"vb1", name:"Radwende", cat:"heim", demo:"radwende",
      info:"Die Bewegungsumkehr: Du landest rückwärts – daran hängen später alle Rückwärts-Verbindungen."},
@@ -453,9 +521,16 @@ const AVATARS = ["⭐","🌟","🤸","🌈","🦄","🐯","🦊","🐼","🦋","
 
 let profiles = [], activeId = null, store = null, profileMenu = false;
 
+/* Derived from DAYS so a new training day is counted without touching four
+   other places. */
+function blankUnits(){
+  const u = {};
+  DAYS.forEach(d => u[d.id] = 0);
+  return u;
+}
 function blankStore(){
   const s = {stars:[], milestones:[], progress:{}, levels:{}, linesDone:{},
-             tl:1, unit:{A:0,B:0,C:0}, extra:0, log:[]};
+             tl:1, unit:blankUnits(), extra:0, log:[]};
   TRACK_KEYS.forEach(k => s.progress[k] = {lvl:0, cnt:0});
   return s;
 }
@@ -467,9 +542,12 @@ function normalize(s){
   if(!s.linesDone) s.linesDone = {};
   if(!s.tl){
     s.tl = 1;
-    s.unit = {A:0, B:0, C:0};
+    s.unit = blankUnits();
     (s.stars||[]).forEach(x => { if(s.unit[x.d]!=null && s.unit[x.d]<3) s.unit[x.d]++; });
   }
+  /* A child who started before the fourth day existed keeps their counters and
+     simply has that day at zero. */
+  DAYS.forEach(d => { if(s.unit[d.id] == null) s.unit[d.id] = 0; });
   return s;
 }
 function newId(){ return "p" + Date.now().toString(36) + Math.floor(Math.random()*1e4).toString(36); }
@@ -1220,12 +1298,14 @@ for(const mk in MOCAP){
 }
 
 const TRACK_DEMO = {bruecke:"bruecke", handstand:"handstand", hollow:"hollow", plank:"plank",
-  superman:"superman", pushup:"pushup", spagat:"spagat", bogengang:"bogengang"};
+  superman:"superman", pushup:"pushup", spagat:"spagat", bogengang:"bogengang",
+  kerze:"tuckdrillcandle", spruenge:"strecksprung"};
 const NAME_DEMO = [
   [/Hampelm/,"hampelmann"],[/Armkreisen/,"armkreisen"],[/Katze-Kuh/,"katzekuh"],
   [/Handgelenke kreisen/,"handgelenke"],[/Hopserlauf/,"hopserlauf"],[/Bärengang/,"baerengang"],
   [/Schulterkreisen/,"schulterkreisen"],[/Kniebeugen/,"kniebeuge"],[/Strecksprünge/,"strecksprung"],
-  [/Toe-Touch/,"toetouch"],[/Schulterdehnung/,"schulterwand"],[/Ausfallschritt/,"ausfallschritt"],
+  [/Toe-Touch|Toe Touch/,"toetouch"],[/Rolle vorwärts|Sprungrolle/,"rollevw"],
+  [/Rolle rückwärts/,"rollerw"],[/Kerze/,"tuckdrillcandle"],[/Schulterdehnung/,"schulterwand"],[/Ausfallschritt/,"ausfallschritt"],
   [/Kobra/,"kobra"],[/Schmetterling/,"schmetterling"],[/Beinrückseite/,"beinrueckseite"],
   [/Handgelenk-Dehnung/,"handgelenkdehnung"],[/wippen/,"wippen"],[/Wand runterlaufen/,"wandlaufen"],
   [/Ein Bein in der Brücke/,"beinheben"],[/Handstand-Versuche/,"handstandfrei"],
@@ -1449,7 +1529,8 @@ const FOCUS = [
   {id:"beweg",   name:"Beweglichkeit",      emoji:"🤸", main:["stretch"], extraStretch:true},
   {id:"bruecke", name:"Brücke & Bogengang", emoji:"🌈", main:["skill"], match:/[Bb]rücke|Bogengang|Kick-over|Wand runter|Bein in der/},
   {id:"rad",     name:"Rad & Radwende",     emoji:"⭐", main:["skill"], match:/Rad|Radwende|Radschlag|Handstand/},
-  {id:"sprung",  name:"Sprünge",            emoji:"🦘", main:["skill","finish"], match:/[Ss]prung|Toe|Hurdler|Star|Pike|Tuck|Strecksprung/}
+  {id:"sprung",  name:"Sprünge",            emoji:"🦘", main:["skill","finish"], match:/[Ss]prung|Toe|Hurdler|Star|Pike|Tuck|Strecksprung/},
+  {id:"balance", name:"Balance & Rollen",    emoji:"🧘", main:["skill"], match:/Waage|Einbein|Kerze|Rolle|Linie gehen|Zehenstand/}
 ];
 const STRETCH_GOALS = [
   {id:"all",     name:"Alles ein bisschen", emoji:"🌍", match:null},
@@ -1573,9 +1654,9 @@ function finishTraining(){
     store.extra = (store.extra||0) + 1;
   } else {
     store.unit[day.id] = (store.unit[day.id]||0) + 1;
-    if(store.tl < TL_MAX && ["A","B","C"].every(d=>store.unit[d]>=TL_NEED)){
+    if(store.tl < TL_MAX && DAYS.every(d => (store.unit[d.id]||0) >= TL_NEED)){
       store.tl++;
-      store.unit = {A:0, B:0, C:0};
+      store.unit = blankUnits();
       tlUp = true;
     }
   }
