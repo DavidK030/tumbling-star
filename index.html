@@ -225,10 +225,15 @@ const TRACKS = {
   /* Balance had no home in the app at all: everything was flexibility, strength
      or tumbling. Held on one leg, it also builds the ankle stability the jumps
      land on. */
-  waage:{label:"Standwaage", stepAfter:2, sides:true, levels:[
-    {sec:10,note:"Blick geradeaus"},{sec:15,note:"Blick geradeaus"},
-    {sec:20,note:"Bein waagerecht"},{sec:25,note:"Bein waagerecht"},
-    {sec:30,note:"Bein waagerecht, ruhig stehen"}]},
+  /* Arabesque is the cheer name for this body position, and the levels follow
+     the three mistakes coaches correct: chest dropping, shoulders turning to
+     the front, hips opening. Height of the leg comes last, not first. */
+  waage:{label:"Arabesque (Standwaage)", stepAfter:2, sides:true, levels:[
+    {sec:10,note:"Am Stuhl festhalten, Brust hoch"},
+    {sec:15,note:"Frei stehen, Brust bleibt oben"},
+    {sec:20,note:"Bein auf Hüfthöhe, Schultern zur Seite"},
+    {sec:25,note:"Bein über Hüfthöhe, Hüfte bleibt zu"},
+    {sec:30,note:"Auf dem Fußballen, Bein hoch, Hüfte zu"}]},
   einbein:{label:"Einbeinstand, Augen zu", stepAfter:2, sides:true, levels:[
     {sec:10,note:"Augen zu"},{sec:15,note:"Augen zu"},{sec:20,note:"Augen zu"},
     {sec:25,note:"Augen zu"},{sec:30,note:"Augen zu, Arme hoch"}]},
@@ -333,6 +338,7 @@ const DAYS = [
       {name:"Armkreisen groß", note:"10x vor + zurück"}]},
     {title:"Balance – ruhig stehen!", kind:"skill", items:[
       {track:"waage"},
+      {name:"Arabesque im Spiegel prüfen", note:"Brust hoch · Schultern zur Seite · Hüfte zu"},
       {track:"einbein"},
       {name:"Zehenstand halten", note:"3x 15 Sek.", sec:15},
       {name:"Auf einer Linie gehen", note:"10 Schritte vor + zurück"}]},
