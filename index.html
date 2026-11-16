@@ -198,12 +198,17 @@ button{font-family:inherit; color:inherit; cursor:pointer}
 const C = {gold:"#C9A227", ink:"#191621", warn:"#E2654F"};
 
 const TRACKS = {
+  /* Each bridge level carries the next form fix: shoulders over the hands is
+     THE readiness cue for kickover and handspring, so it comes before depth. */
   bruecke:{label:"Brücke halten", stepAfter:2, levels:[
-    {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"},
-    {sec:25,note:"3 Durchgänge"},{sec:30,note:"3 Durchgänge"}]},
+    {sec:10,note:"3 Durchgänge"},
+    {sec:15,note:"3 Durchgänge · Füße näher an die Hände"},
+    {sec:20,note:"3 Durchgänge · Schultern über die Hände"},
+    {sec:25,note:"3 Durchgänge · Arme ganz strecken"},
+    {sec:30,note:"3 Durchgänge · Beine zusammen"}]},
   handstand:{label:"Handstand an der Wand", stepAfter:2, levels:[
     {sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"},{sec:30,note:"3 Durchgänge"},
-    {sec:40,note:"3 Durchgänge"},{sec:50,note:"3 Durchgänge"}]},
+    {sec:40,note:"3 Durchgänge"},{sec:60,note:"3 Durchgänge – Flick-Flack-Reife!"}]},
   hollow:{label:"Hollow Body (Bananenlage)", stepAfter:2, levels:[
     {sec:10,note:"3 Durchgänge"},{sec:15,note:"3 Durchgänge"},{sec:20,note:"3 Durchgänge"},
     {sec:25,note:"3 Durchgänge"},{sec:30,note:"3 Durchgänge"}]},
@@ -253,11 +258,16 @@ const TRACKS = {
     {name:"Spagatsprung", note:"je Seite 5x, ein Bein vor, eins zurück"},
     {name:"Toe Touch", note:"5x, Grätsche seitlich, Beine gestreckt"},
     {name:"Toe Touch mit Schwung", note:"5x, Arme hoch – runter – hoch"}]},
+  /* The elevation shrinks to zero before the walkover starts: kickover from
+     the floor sits between elevation and spotter, the way coaches step it
+     down. The lunge finish is the most-corrected error, so it rides along
+     in the notes of the spotted steps. */
   bogengang:{label:"Bogengang-Linie", stepAfter:3, line:"lnBG", levels:[
     {name:"Brücke von der Erhöhung", note:"Sofa/Kasten, 5x"},
     {name:"Kick-over von der Erhöhung", note:"5 Versuche"},
-    {name:"Bogengang rückwärts mit Spotter", note:"5 Versuche"},
-    {name:"Bogengang mit wenig Hilfe", note:"5 Versuche"},
+    {name:"Kick-over vom Boden", note:"5 Versuche, mit Spotter"},
+    {name:"Bogengang rückwärts mit Spotter", note:"5 Versuche · Ausfallschritt kurz halten"},
+    {name:"Bogengang mit wenig Hilfe", note:"5 Versuche · Ausfallschritt kurz halten"},
     {name:"Bogengang allein", note:"5 Versuche", gate:"m6"}]}
 };
 const TRACK_KEYS = Object.keys(TRACKS);
@@ -269,12 +279,11 @@ const DAYS = [
       {name:"Armkreisen groß", note:"10x vor + zurück"},
       {name:"Katze-Kuh auf der Matte", note:"8x langsam"},
       {name:"Handgelenke kreisen", note:"10x pro Seite"}]},
-    {title:"Dehnen – lange halten!", kind:"stretch", items:[
-      {name:"Schulterdehnung an der Wand", sec:30},
-      {name:"Ausfallschritt-Dehnung", sec:30, sides:true},
-      {name:"Kobra-Dehnung", sec:30},
-      {track:"spagat"}]},
+    /* Long static holds live at the end of the session (warm muscles, no
+       power loss before the drills). The one stretch that stays up front is
+       the shoulder opener: bridges need open shoulders to be safe. */
     {title:"Brücken-Drills", kind:"skill", items:[
+      {name:"Schulterdehnung an der Wand", sec:30, note:"macht die Schultern bereit"},
       {track:"bruecke"},
       {name:"Brücke vor- und zurückwippen", note:"10x"},
       {name:"Brücke: Wand runterlaufen", note:"3x"},
@@ -283,7 +292,11 @@ const DAYS = [
       {name:"5x Rad – Landung stehen!", note:"Beine strecken"},
       {name:"3x Lieblingssprung", note:"Toe Touch / Tuck"},
       {name:"Sitz-Sprung-Haltung", note:"3x 3 Sek halten", minTL:2},
-      {name:"Brücken-Kick-over", note:"3 Versuche, mit Spotter!", minTL:2}]}
+      {name:"Brücken-Kick-over", note:"3 Versuche, mit Spotter!", minTL:2}]},
+    {title:"Dehnen – lange halten!", kind:"stretch", items:[
+      {track:"spagat"},
+      {name:"Ausfallschritt-Dehnung", sec:30, sides:true},
+      {name:"Kobra-Dehnung", sec:30}]}
   ]},
   {id:"B", name:"Kraft-Tag", emoji:"💪", color:C.gold, tint:"#FFFFFF", sections:[
     {title:"Aufwärmen", kind:"warm", items:[
@@ -292,7 +305,8 @@ const DAYS = [
       {name:"Schulterkreisen", note:"10x pro Richtung"},
       {name:"10 Kniebeugen"}]},
     {title:"Kraft", kind:"strength", items:[
-      {track:"handstand"},{track:"hollow"},{track:"pushup"},{track:"superman"},{track:"plank"}]},
+      {track:"handstand"},{track:"hollow"},{track:"pushup"},{track:"superman"},{track:"plank"},
+      {name:"Beinheben im Liegen", note:"15x, Rücken bleibt am Boden", minTL:2}]},
     {title:"Abschluss", kind:"finish", items:[
       {name:"Handstand-Versuche mit Spotter", note:"5 Versuche"},
       {name:"3x Radschlag sauber"},
@@ -368,7 +382,7 @@ const MILESTONES = [
   {id:"m2", name:"Wand komplett runterlaufen"},
   {id:"m3", name:"Handstand 20 Sek. an der Wand", check:()=>store.progress.handstand.lvl>=2},
   {id:"m4", name:"Spagat fast ganz unten"},
-  {id:"m5", name:"Bogengang mit wenig Hilfe", check:()=>store.progress.bogengang.lvl>=4},
+  {id:"m5", name:"Bogengang mit wenig Hilfe", check:()=>store.progress.bogengang.lvl>=5},
   {id:"m6", name:"Trainer-Okay: Bogengang allein üben"}
 ];
 
@@ -428,22 +442,27 @@ const LEVELS = [
 /* Skill lines: complete ladders from first drill to the CCVD target skill.
    Home steps are trainable, club steps are confirm-only checkpoints. */
 const LINES = [
-  {id:"lnBG", name:"Bogengang-Linie", ziel:"CCVD Level 1", steps:[
+  {id:"lnBG", name:"Bogengang-Linie", ziel:"CCVD Level 1",
+   ready:{ms:["m1","m3"], text:"Brücke 15 Sekunden und Handstand 20 Sekunden an der Wand – "
+     +"mit dieser Basis klappen die Stufen viel leichter (schau in den Ziele-Tab)."},
+   steps:[
     {id:"bg1", name:"Brücke von der Erhöhung", cat:"heim", demo:"bruecke",
      info:"Vom Sofa oder Kasten in die Brücke – so lernst du das Gefühl, ohne ganz tief runter zu müssen."},
     {id:"bg2", name:"Kick-over von der Erhöhung", cat:"heim", demo:"ffdrillkickover",
      info:"Ein Bein schwingt über dich rüber. Die Erhöhung macht den Weg kurz – mit Spotter üben!"},
+    {id:"bg2b", name:"Kick-over vom Boden", cat:"heim", demo:"ffdrillkickover",
+     info:"Jetzt ohne Erhöhung: aus der Brücke am Boden kräftig rüberschwingen – mit Spotter, bis es sicher sitzt."},
     {id:"bg3", name:"Bogengang mit Spotter", cat:"heim", demo:"bogengang",
-     info:"Jetzt die ganze Bewegung vom Boden – jemand hält dich dabei fest."},
+     info:"Jetzt die ganze Bewegung vom Boden – jemand hält dich dabei fest. Am Ende: Ausfallschritt kurz halten, Arme an den Ohren!"},
     {id:"bg4", name:"Bogengang mit wenig Hilfe", cat:"heim", demo:"bogengang",
-     info:"Der Spotter hilft nur noch ganz leicht. Du machst fast alles selbst!"},
+     info:"Der Spotter hilft nur noch ganz leicht. Du machst fast alles selbst – und stehst am Ende sauber im Ausfallschritt!"},
     {id:"bg5", name:"Bogengang allein", cat:"verein", demo:"bogengang",
      info:"Der große Moment – aber erst, wenn dein Trainer das Okay gibt!"}]},
   {id:"lnFF", name:"Flick-Flack-Linie", ziel:"CCVD Level 2–3", steps:[
     {id:"ff1", name:"Sitz-Sprung-Haltung", cat:"heim", demo:"ffdrillsitz",
      info:"Absitzen wie auf einen Stuhl und explosiv strecken – genau so startet später der Flick-Flack."},
     {id:"ff2", name:"Handstütz-Schnepper", cat:"heim", demo:"ffdrillschnepper",
-     info:"Im Handstand die Schultern lang drücken – das gibt dir später den Abdruck aus den Händen."},
+     info:"Im Handstand die Schultern lang drücken – das gibt dir später den Abdruck aus den Händen. Nur auf Matte oder Teppich, Erwachsener dabei!"},
     {id:"ff3", name:"Brücken-Kick-over", cat:"heim", demo:"ffdrillkickover",
      info:"Rückwärts über die Hände – die halbe Flick-Flack-Bewegung, schön langsam."},
     {id:"ff4", name:"Flick-Flack mit Spotter", cat:"verein", demo:"ff",
@@ -559,6 +578,18 @@ function normalize(s){
   /* A child who started before the fourth day existed keeps their counters and
      simply has that day at zero. */
   DAYS.forEach(d => { if(s.unit[d.id] == null) s.unit[d.id] = 0; });
+  /* One-time shift: "Kick-over vom Boden" was inserted as step 3 of the
+     Bogengang ladder, so saved levels at or past it move up by one, and the
+     line ticks follow the same slice rule the level-up sync uses. */
+  if(!s.bgSteps6){
+    if(s.progress.bogengang && s.progress.bogengang.lvl >= 2){
+      s.progress.bogengang.lvl++;
+      const ln = LINES.find(l=>l.id==="lnBG");
+      ln.steps.slice(0, s.progress.bogengang.lvl)
+        .forEach(st=>{ if(st.cat==="heim") s.linesDone[st.id] = true; });
+    }
+    s.bgSteps6 = true;
+  }
   return s;
 }
 function newId(){ return "p" + Date.now().toString(36) + Math.floor(Math.random()*1e4).toString(36); }
@@ -2013,6 +2044,10 @@ function levelHTML(){
       +'<span style="font-weight:900;font-size:13px">'+done+'/'+ln.steps.length+'</span>'
       +'<span style="color:var(--sub);font-size:15px">'+(open?'▾':'▸')+'</span></button>';
     if(open){
+      if(ln.ready && !ln.ready.ms.every(m=>store.milestones.includes(m))){
+        h += '<div style="margin:0 14px 8px;background:#FFF6DB;border-radius:12px;padding:8px 10px;font-size:12.5px;line-height:1.45">'
+          +'<b>🔑 Gute Basis zuerst:</b> '+esc(ln.ready.text)+'</div>';
+      }
       ln.steps.forEach((s2,i)=>{
         const on = !!store.linesDone[s2.id];
         const isCur = cur && cur.id===s2.id;
